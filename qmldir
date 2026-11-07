@@ -1,0 +1,49 @@
+ActionTile components/ActionTile.qml
+AppsMenu menus/AppsMenu.qml
+singleton AudioService services/AudioService.qml
+Bar bar/Bar.qml
+BatteryAlert island/views/BatteryAlert.qml
+singleton BatteryService services/BatteryService.qml
+BluetoothAlert island/views/BluetoothAlert.qml
+BluetoothMenu menus/BluetoothMenu.qml
+BluetoothPanel menus/BluetoothPanel.qml
+singleton BluetoothService services/BluetoothService.qml
+BrightnessAlert island/views/BrightnessAlert.qml
+singleton BrightnessService services/BrightnessService.qml
+CameraMenu menus/CameraMenu.qml
+CameraPanel menus/CameraPanel.qml
+CaptureMenu menus/CaptureMenu.qml
+singleton CaptureService services/CaptureService.qml
+DisplayMenu menus/DisplayMenu.qml
+singleton DisplayService services/DisplayService.qml
+IconLabel components/IconLabel.qml
+singleton Integration core/Integration.qml
+IpcEndpoints core/IpcEndpoints.qml
+Island island/Island.qml
+singleton IslandController core/IslandController.qml
+MediaPill bar/MediaPill.qml
+MenuPage components/MenuPage.qml
+MenuWindow menus/MenuWindow.qml
+NetworkAlert island/views/NetworkAlert.qml
+singleton NetworkService services/NetworkService.qml
+singleton NiriService services/NiriService.qml
+singleton OverlayController core/OverlayController.qml
+Pill components/Pill.qml
+PowerProfileMenu menus/PowerProfileMenu.qml
+ResultList components/ResultList.qml
+SearchField components/SearchField.qml
+SessionMenu menus/SessionMenu.qml
+singleton SessionService services/SessionService.qml
+singleton Settings core/Settings.qml
+StatusPill bar/StatusPill.qml
+singleton SystemService services/SystemService.qml
+singleton Theme core/Theme.qml
+Tray bar/Tray.qml
+VolumeAlert island/views/VolumeAlert.qml
+WifiMenu menus/WifiMenu.qml
+singleton WifiService services/WifiService.qml
+WindowTitle island/views/WindowTitle.qml
+WindowsMenu menus/WindowsMenu.qml
+singleton WorkspaceController core/WorkspaceController.qml
+WorkspaceHud workspace/WorkspaceHud.qml
+WorkspaceMap workspace/WorkspaceMap.qml
