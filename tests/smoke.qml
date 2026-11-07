@@ -21,6 +21,29 @@ ShellRoot {
         visible: false
         animateChanges: false
     }
+    function batteryChecks() {
+        const previous = { known: BatteryService.acKnown, onBat: BatteryService.onBat, status: BatteryService.batteryStatus }
+        try {
+            BatteryService.acKnown = true
+            BatteryService.onBat = false
+            BatteryService.batteryStatus = "Charging"
+            check(BatteryService.plugged && BatteryService.charging, "AC charging uses bolt state")
+            BatteryService.batteryStatus = "Not charging"
+            check(BatteryService.plugged && !BatteryService.charging, "AC charge limit uses plug state")
+            BatteryService.batteryStatus = "Full"
+            check(BatteryService.plugged && !BatteryService.charging, "full battery on AC uses plug state")
+            BatteryService.onBat = true
+            BatteryService.batteryStatus = "Charging"
+            check(!BatteryService.plugged && !BatteryService.charging, "unplug overrides stale charging status")
+            BatteryService.acKnown = false
+            BatteryService.batteryStatus = ""
+            check(!BatteryService.plugged, "unknown battery status is not treated as plugged in")
+        } finally {
+            BatteryService.acKnown = previous.known
+            BatteryService.onBat = previous.onBat
+            BatteryService.batteryStatus = previous.status
+        }
+    }
     function mapChecks() {
         atlas.workspaceData = {
             1: {
@@ -271,6 +294,7 @@ ShellRoot {
                     }, false)
                     test.check(!IslandController.btUp && IslandController.islandMode === "bluetooth", "Bluetooth alert route")
                     test.mapChecks()
+                    test.batteryChecks()
                     console.log("SMOKE PASS: " + test.assertions + " assertions")
                     Qt.quit()
                 }

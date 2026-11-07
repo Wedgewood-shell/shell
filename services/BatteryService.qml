@@ -21,7 +21,10 @@ Singleton {
         triggeredOnStart: true
         onTriggered: {
             acFile.reload()
-            const isBat = acFile.text().trim() === "0"
+            const online = acFile.text().trim()
+            if (online !== "0" && online !== "1")
+                return
+            const isBat = online === "0"
             if (root.acKnown && isBat !== root.onBat)
                 root.changed()
             root.onBat = isBat
@@ -31,7 +34,8 @@ Singleton {
 
     property int battery: 0
     property string batteryStatus: ""
-    readonly property bool plugged: batteryStatus !== "Discharging"
+    readonly property bool plugged: acKnown ? !onBat : ["Charging", "Not charging", "Full"].includes(batteryStatus)
+    readonly property bool charging: plugged && batteryStatus === "Charging"
     signal changed
     Process {
         id: poll
@@ -52,7 +56,7 @@ Singleton {
         repeat: true
         triggeredOnStart: true
         onTriggered: if (!poll.running)
-                         poll.running = true
+            poll.running = true
     }
     function batteryGlyph(frac) {
         const icons = ["\uf244", "\uf243", "\uf242", "\uf241", "\uf240"]

@@ -30,6 +30,9 @@ a menu owns keyboard focus. The MPRIS/media pill is removed.
 The island's resting state is date and time, in a fixed 300-pixel pill
 (`Theme.islandBaseWidth`). The right status pill no longer duplicates the clock.
 Transient alerts return to the clock. Recording status remains in the island.
+The status pill uses a larger battery indicator with the percentage inside while
+on battery, a lightning bolt while charging, and a plug when externally powered
+without charging. AC state is used to distinguish plugged-in from discharging.
 
 Both menu and workspace-HUD geometry use `components/IslandMorph.qml`: one
 animation progress value interpolates width, height and radius together, with

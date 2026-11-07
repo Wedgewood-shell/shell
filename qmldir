@@ -49,3 +49,4 @@ WorkspaceHud workspace/WorkspaceHud.qml
 WorkspaceMap workspace/WorkspaceMap.qml
 IslandHandoff components/IslandHandoff.qml
 IslandMorph components/IslandMorph.qml
+BatteryIndicator components/BatteryIndicator.qml

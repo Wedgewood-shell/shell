@@ -23,14 +23,17 @@ Pill {
             }
         }
         IconLabel {
+            anchors.verticalCenter: parent.verticalCenter
             text: (SystemService.tempC >= 90 ? Theme.cp(0xF0E01) : Theme.cp(0xF050F)) + " " + SystemService.tempC + "°"
             color: SystemService.tempC >= 90 ? Theme.danger : Theme.success
         }
         IconLabel {
+            anchors.verticalCenter: parent.verticalCenter
             text: NetworkService.netIcon
             color: NetworkService.netKind === "none" ? Theme.danger : Theme.foreground
         }
         IconLabel {
+            anchors.verticalCenter: parent.verticalCenter
             text: AudioService.volumeIcon()
             color: AudioService.muted ? "#929aab" : Theme.foreground
             MouseArea {
@@ -42,9 +45,8 @@ Pill {
                 }
             }
         }
-        IconLabel {
-            text: BatteryService.plugged ? "" + "" : BatteryService.batteryIcon() + " " + BatteryService.battery + "%"
-            color: BatteryService.plugged ? Theme.foreground : BatteryService.battery <= 15 ? Theme.danger : BatteryService.battery <= 30 ? Theme.warning : Theme.foreground
+        BatteryIndicator {
+            anchors.verticalCenter: parent.verticalCenter
         }
     }
 }
