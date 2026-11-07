@@ -17,6 +17,11 @@ Singleton {
     readonly property color success: "#91e0cb"
     readonly property color warning: "#ffd27d"
     readonly property color danger: "#ff8585"
+    readonly property int islandBaseWidth: 300
+    readonly property int windowTitleMaxWidth: 400
+    readonly property real workspacePreviewScale: 0.4
+    readonly property real workspaceIconScale: 1.5
+    readonly property int islandFadeDuration: 120
     readonly property int barHeight: 42
     readonly property int topMargin: 8
     readonly property int closedRadius: 12

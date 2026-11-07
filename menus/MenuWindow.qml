@@ -7,58 +7,80 @@ PanelWindow {
     id: win
     readonly property bool open: OverlayController.launcherOpen
     readonly property var pages: ({
-                                      apps: appsPage,
-                                      windows: windowsPage,
-                                      wifi: wifiPage,
-                                      bluetooth: bluetoothPage,
-                                      camera: cameraPage,
-                                      capture: capturePage,
-                                      display: displayPage,
-                                      power: powerPage,
-                                      session: sessionPage
-                                  })
+            apps: appsPage,
+            windows: windowsPage,
+            wifi: wifiPage,
+            bluetooth: bluetoothPage,
+            camera: cameraPage,
+            capture: capturePage,
+            display: displayPage,
+            power: powerPage,
+            session: sessionPage
+        })
     readonly property var page: menuLoader.item
+    readonly property real closedWidth: OverlayController.islandWidths[screen ? screen.name : OverlayController.launcherScreen] ?? 300
     screen: Quickshell.screens.find(s => s.name === OverlayController.launcherScreen) ?? Quickshell.screens[0]
-    visible: open || hideTimer.running
+    visible: open || handoff.retained
     color: "transparent"
     anchors.top: true
     margins.top: Theme.topMargin
-    implicitWidth: Math.max(720, pill.width + 24)
-    implicitHeight: Math.max(640, pill.height + 24)
+    implicitWidth: 720
+    implicitHeight: Math.max(640, layoutHeight + 64)
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "island-launcher"
     WlrLayershell.keyboardFocus: open ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     mask: Region {
-        item: pill
+        item: win.open ? pill : null
     }
-    Timer {
-        id: hideTimer
-        interval: 520
+    property real layoutWidth: 620
+    property real layoutHeight: Theme.barHeight
+    readonly property int closeDuration: 400
+    function syncLayout() {
+        if (open && page) {
+            layoutWidth = page.contentWidth
+            layoutHeight = page.contentHeight
+        }
     }
-    Timer {
-        id: settleTimer
-        interval: 340
-        onTriggered: OverlayController.launcherBusy = false
+    Connections {
+        target: win.page
+        function onContentWidthChanged() {
+            win.syncLayout()
+        }
+        function onContentHeightChanged() {
+            win.syncLayout()
+        }
+    }
+    IslandMorph {
+        id: geometry
+        expanded: win.open
+        collapsedWidth: win.closedWidth
+        expandedWidth: win.layoutWidth
+        expandedHeight: win.layoutHeight
+        duration: win.open ? Theme.morphDuration : win.closeDuration
+    }
+    IslandHandoff {
+        id: handoff
+        surface: win
+        expanded: win.open
+        currentHeight: pill.height
+        expandedHeight: win.layoutHeight
+        morphing: geometry.running
+        onCoveredChanged: OverlayController.launcherBusy = covered
     }
     function prepare() {
         if (!page)
             return
         field.text = ""
         page.refresh()
+        syncLayout()
         field.forceActiveFocus()
     }
     onPageChanged: if (open)
-                       prepare()
+        prepare()
     onOpenChanged: {
-        OverlayController.launcherBusy = true
-        if (open) {
-            settleTimer.stop()
+        if (open)
             prepare()
-        } else {
-            hideTimer.restart()
-            settleTimer.restart()
-        }
     }
     Connections {
         target: win.page
@@ -71,43 +93,40 @@ PanelWindow {
         id: pill
         anchors.horizontalCenter: parent.horizontalCenter
         clip: true
-        radius: win.open ? Theme.openRadius : Theme.closedRadius
+        radius: geometry.radius
         color: Theme.surface
         border.width: 1
         border.color: Theme.border
-        width: win.open ? (win.page ? win.page.contentWidth : 620) : OverlayController.islandWidth
-        height: win.open ? (win.page ? win.page.contentHeight : 42) : Theme.barHeight
-        opacity: OverlayController.launcherBusy ? 1 : 0
-        Behavior on opacity {
-            NumberAnimation {
-                duration: 120
-            }
-        }
-        Behavior on width {
-            NumberAnimation {
-                duration: win.open ? Theme.morphDuration : 320
-                easing.type: win.open ? Easing.OutBack : Easing.InOutCubic
-                easing.overshoot: 0.9
-            }
-        }
-        Behavior on height {
-            NumberAnimation {
-                duration: win.open ? Theme.morphDuration : 320
-                easing.type: win.open ? Easing.OutBack : Easing.InOutCubic
-                easing.overshoot: 0.9
-            }
-        }
-        Behavior on radius {
-            NumberAnimation {
-                duration: 300
+        width: geometry.width
+        height: geometry.height
+        opacity: 1
+        Island {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: parent.top
+            width: parent.width
+            height: Theme.barHeight
+            color: "transparent"
+            border.width: 0
+            opacity: handoff.islandOpacity
+            Behavior on opacity {
+                enabled: win.open
+                NumberAnimation {
+                    duration: 120
+                }
             }
         }
         Item {
-            anchors.fill: parent
-            opacity: win.open ? 1 : 0
+            id: content
+            enabled: win.open
+            width: win.layoutWidth
+            height: win.layoutHeight
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: parent.top
+            opacity: handoff.contentOpacity
             Behavior on opacity {
+                enabled: win.open
                 NumberAnimation {
-                    duration: win.open ? 260 : 90
+                    duration: 260
                 }
             }
             Loader {
@@ -142,7 +161,7 @@ PanelWindow {
                 }
                 Item {
                     anchors.verticalCenter: parent.verticalCenter
-                    width: pill.width - 80
+                    width: content.width - 80
                     height: 24
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
@@ -171,13 +190,9 @@ PanelWindow {
                                 OverlayController.launcherOpen = false
                             else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
                                 win.page.submit()
-                            else if (event.key === Qt.Key_Down || (win.page.tiles && event.key === Qt.Key_Right)
-                                     || ((event.modifiers & Qt.ControlModifier)
-                                         && [Qt.Key_N, Qt.Key_J].includes(event.key)))
+                            else if (event.key === Qt.Key_Down || (win.page.tiles && event.key === Qt.Key_Right) || ((event.modifiers & Qt.ControlModifier) && [Qt.Key_N, Qt.Key_J].includes(event.key)))
                                 win.page.navigate(1)
-                            else if (event.key === Qt.Key_Up || (win.page.tiles && event.key === Qt.Key_Left)
-                                     || ((event.modifiers & Qt.ControlModifier)
-                                         && [Qt.Key_P, Qt.Key_K].includes(event.key)))
+                            else if (event.key === Qt.Key_Up || (win.page.tiles && event.key === Qt.Key_Left) || ((event.modifiers & Qt.ControlModifier) && [Qt.Key_P, Qt.Key_K].includes(event.key)))
                                 win.page.navigate(-1)
                             else
                                 return

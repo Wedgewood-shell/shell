@@ -10,7 +10,7 @@ workspace HUD, IPC endpoints, and event wiring. It contains no feature logic.
 | `core/` | Theme, machine settings, island/overlay/workspace policy, IPC, event wiring |
 | `services/` | System state, polling, Niri event stream, and command execution |
 | `components/` | Shared pill, text, search field, action button, result list, menu-page contract |
-| `bar/` | Per-screen bar, media, status indicators, system tray |
+| `bar/` | Per-screen bar, capped window title, status indicators, system tray |
 | `island/` | Compact island and individual animated alert views |
 | `menus/` | Feature-specific models, actions, navigation, and custom content |
 | `workspace/` | Workspace map and HUD presentation/animations |
@@ -20,6 +20,20 @@ workspace HUD, IPC endpoints, and event wiring. It contains no feature logic.
 All exported QML types are registered explicitly in the root `qmldir`.
 Files one directory deep import `".."`; files in `island/views/` import `"../.."`.
 This is one local QML module; each feature directory does not need its own module.
+
+## Resting bar layout
+
+The left pill shows the focused window title, elided at a maximum width of
+400 logical pixels (`Theme.windowTitleMaxWidth`). It retains the last title while
+a menu owns keyboard focus. The MPRIS/media pill is removed.
+
+The island's resting state is date and time, in a fixed 300-pixel pill
+(`Theme.islandBaseWidth`). The right status pill no longer duplicates the clock.
+Transient alerts return to the clock. Recording status remains in the island.
+
+Both menu and workspace-HUD geometry use `components/IslandMorph.qml`: one
+animation progress value interpolates width, height and radius together, with
+coalesced target updates and support for reversal and live menu resizing.
 
 ## State and event flow
 
@@ -31,7 +45,8 @@ This is one local QML module; each feature directory does not need its own modul
 - `OverlayController` owns menu mode, output selection, open/closing state,
   per-output island widths, and requests that an existing workspace HUD dismiss.
 - `WorkspaceController` combines bursts of Niri changes into one HUD request,
-  prioritizing a window move over a column shift over a workspace switch.
+  prioritizing a window move over a column shift over a workspace switch over a
+  focus change within a workspace.
 - `NiriService` owns the single Niri event stream and immutable window/workspace
   snapshots. The title, window search, and HUD share this state. It reconnects if
   its event-stream process exits.
@@ -39,6 +54,50 @@ This is one local QML module; each feature directory does not need its own modul
   animation. Its Loader instantiates the selected menu page. Pages own their
   results, actions, navigation and content dimensions.
 - `BluetoothService` owns pending pairing so switching pages does not lose it.
+
+## Workspace HUD navigation
+
+The HUD reveals a viewport over one persistent map of every workspace on the
+current output. Workspace rows sit vertically; window columns extend horizontally
+at a consistent scale. Switching workspaces pans vertically, while focusing
+another window pans horizontally. Neighboring rows/columns fade through an alpha
+mask at all four viewport edges. Workspace rows have no background or border;
+windows in neighboring workspaces use the same gutter as neighboring columns.
+
+Window delegates are keyed by window ID across the entire scene. Moving a window
+to another workspace animates the same tile between rows. Incremental ID models
+preserve the other tiles when a window opens or closes. There is no six-column
+limit and no per-tile entrance animation. Floating windows are still omitted from
+the scrolling-layout drawing, matching the previous HUD.
+
+The map contents use 40% of their original size. Adjust `workspacePreviewScale`
+in `core/Theme.qml` to resize window tiles and spacing. `workspaceIconScale`
+independently enlarges icons (currently 1.5×), without changing tile geometry. The map
+viewport shows 1.5 workspace heights. The full-size title and workspace indicators
+sit to the left of the map, with no separator; the HUD height follows this content
+size. Workspace labels inside the minimap are omitted.
+`NiriService.layoutGap` supplies the shared gutter for rows and columns. Tune
+`rowHeight` and `panDuration` in `workspace/WorkspaceMap.qml` for further changes.
+The map stays instantiated while the HUD is hidden. Rapid navigation retargets the
+current camera animation instead of rebuilding the scene. The native HUD surface
+has a fixed width of 720 and a height derived from the resting content size. Its
+content layout also stays fixed during the visible pill's morph, avoiding per-frame
+Wayland surface resizes and header relayout.
+The map reveal, camera pan, tile movement and pill expansion start together;
+panning and the pill morph share a 400 ms duration. There is no delayed reveal
+or pan timer. Before opening a closed HUD, a saved snapshot primes the starting
+geometry for a move, shift or focus change and is released in the same event turn.
+
+`components/IslandHandoff.qml` coordinates the menu/HUD surface with the bar.
+The bar is hidden only after the front surface presents a frame. On collapse,
+actual morph completion releases the bar, then the front surface stays mapped
+through the bar's fade and two additional rendered frames. A copy of the normal
+island content fades in during collapse, so there is no empty-pill interval.
+Menu content keeps its expanded layout during clipping. Its fade and the returning
+island title's fade follow collapse geometry, rather than cutting out after a
+fixed 90 ms or overlapping two titles for most of the transition. The system tray hides both
+`nm-applet` and `blueman`, whose functions are provided by the custom menus.
+
 
 ## Customize
 
@@ -96,7 +155,7 @@ and `island bluetooth`.
 ## Dependencies
 
 Quickshell with Qt Quick, Wayland layer-shell support, Qt Multimedia, and its
-Bluetooth, Networking, PipeWire, MPRIS, and system-tray modules; Niri; NetworkManager
+Bluetooth, Networking, PipeWire and system-tray modules; Niri; NetworkManager
 (`nmcli`); `ip`; `powerprofilesctl`; Python 3; and FiraCode Nerd Font.
 Actions additionally use Kitty, pavucontrol, swaylock, systemctl, and these existing
 helpers in `~/.local/bin/`:
@@ -116,12 +175,16 @@ From a running Wayland session:
 
 ```sh
 python3 ~/.config/quickshell/scripts/check.py
+python3 ~/.config/quickshell/scripts/check.py --transitions
 quickshell --no-duplicate
 ```
 
-The checker copies the module into a temporary directory, runs a separate instance,
+The `--transitions` checks briefly show test surfaces without taking keyboard focus
+and exercise the actual render/close/reopen handoff. The default smoke checker
+copies the module into a temporary directory, runs a separate instance,
 and checks menu creation, search, submenu navigation, title/layout state, null
-workspace IDs, width limits, and alert routing. It keeps menus closed and does not
+workspace IDs, width limits, alert routing, full-map coverage, camera coordinates,
+and window-delegate identity across panning, moving and closing windows. It keeps menus closed and does not
 launch apps, connect devices, take photos, change display layouts, or execute
 session/power actions. Camera capture, real network connections and multi-monitor
 transitions still need hardware validation.

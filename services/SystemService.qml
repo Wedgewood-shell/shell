@@ -16,8 +16,7 @@ Singleton {
 
     Process {
         id: poll
-        command: ["sh", "-c", "head -1 /proc/stat; cat " + Settings.cpuTemperatureGlob + " | head -1; "
-            + "powerprofilesctl get 2>/dev/null || echo balanced"]
+        command: ["sh", "-c", "head -1 /proc/stat; cat " + Settings.cpuTemperatureGlob + " | head -1; " + "powerprofilesctl get 2>/dev/null || echo balanced"]
         stdout: StdioCollector {
             onStreamFinished: {
                 const l = text.trim().split("\n")
@@ -46,7 +45,7 @@ Singleton {
         repeat: true
         triggeredOnStart: true
         onTriggered: if (!poll.running)
-                         poll.running = true
+            poll.running = true
     }
 
     function setProfile(p) {
@@ -56,7 +55,7 @@ Singleton {
     }
     SystemClock {
         id: clock
-        precision: SystemClock.Seconds
+        precision: SystemClock.Minutes
     }
-    readonly property string clockText: Qt.formatDateTime(clock.date, "ddd d HH:mm")
+    readonly property string clockText: Qt.formatDateTime(clock.date, "ddd d MMM  HH:mm")
 }

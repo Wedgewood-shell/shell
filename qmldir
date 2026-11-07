@@ -21,7 +21,7 @@ singleton Integration core/Integration.qml
 IpcEndpoints core/IpcEndpoints.qml
 Island island/Island.qml
 singleton IslandController core/IslandController.qml
-MediaPill bar/MediaPill.qml
+WindowTitlePill bar/WindowTitlePill.qml
 MenuPage components/MenuPage.qml
 MenuWindow menus/MenuWindow.qml
 NetworkAlert island/views/NetworkAlert.qml
@@ -42,8 +42,10 @@ Tray bar/Tray.qml
 VolumeAlert island/views/VolumeAlert.qml
 WifiMenu menus/WifiMenu.qml
 singleton WifiService services/WifiService.qml
-WindowTitle island/views/WindowTitle.qml
+ClockView island/views/ClockView.qml
 WindowsMenu menus/WindowsMenu.qml
 singleton WorkspaceController core/WorkspaceController.qml
 WorkspaceHud workspace/WorkspaceHud.qml
 WorkspaceMap workspace/WorkspaceMap.qml
+IslandHandoff components/IslandHandoff.qml
+IslandMorph components/IslandMorph.qml

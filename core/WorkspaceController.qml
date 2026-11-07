@@ -7,10 +7,11 @@ import ".."
 Singleton {
     id: root
     // ---- HUD request (read by WorkspaceHud) ----
-    property string hudKind: ""           // "switch" | "move" | "shift"
+    property string hudKind: ""           // "switch" | "move" | "shift" | "focus"
     property int hudSerial: 0
     property int hudWs: -1                // workspace to show (destination for a move)
     property int hudFrom: -1              // source workspace of a move
+    property int hudFromWinId: -1        // previous focused window for a horizontal pan
     property int hudWinId: -1             // moving window
     property var hudSnap: ({})            // windows before the change (so moves/shifts can animate from it)
     property int hudDir: 0                // +1 = went down to a higher-numbered workspace, -1 = went up
@@ -37,9 +38,10 @@ Singleton {
                 const w = previousWs[k]
                 if (w.output === target.output && w.is_active && w.idx !== target.idx)
                     queue("switch", {
-                              ws: id,
-                              dir: sign(target.idx - w.idx)
-                          })
+                        ws: id,
+                        from: w.id,
+                        dir: sign(target.idx - w.idx)
+                    })
             }
         } else if (ev.WindowOpenedOrChanged) {
             const w = ev.WindowOpenedOrChanged.window, old = before[w.id]
@@ -47,11 +49,21 @@ Singleton {
                 structuralAt = Date.now()
             if (old && old.workspace_id !== w.workspace_id && old.workspace_id != null && w.workspace_id != null)
                 queue("move", {
-                          id: w.id,
-                          from: old.workspace_id,
-                          ws: w.workspace_id,
-                          snap: before
-                      })
+                    id: w.id,
+                    from: old.workspace_id,
+                    ws: w.workspace_id,
+                    snap: before
+                })
+        } else if (ev.WindowFocusChanged) {
+            const id = ev.WindowFocusChanged.id, next = NiriService.windows[id]
+            const previous = Object.values(before).find(w => w.is_focused)
+            if (next && previous && next.id !== previous.id && next.workspace_id != null && next.workspace_id === previous.workspace_id)
+                queue("focus", {
+                    ws: next.workspace_id,
+                    id: next.id,
+                    fromId: previous.id,
+                    snap: before
+                })
         } else if (ev.WindowClosed) {
             structuralAt = Date.now()
         } else if (ev.WindowLayoutsChanged && Date.now() - structuralAt > 450) {
@@ -61,9 +73,9 @@ Singleton {
                 const b = current && current.layout && current.layout.pos_in_scrolling_layout
                 if (a && b && current.workspace_id != null && (a[0] !== b[0] || a[1] !== b[1])) {
                     queue("shift", {
-                              ws: current.workspace_id,
-                              snap: before
-                          })
+                        ws: current.workspace_id,
+                        snap: before
+                    })
                     break
                 }
             }
@@ -91,16 +103,19 @@ Singleton {
                 root.fire("shift", p.shift)
             else if (p.switch)
                 root.fire("switch", p.switch)
+            else if (p.focus)
+                root.fire("focus", p.focus)
         }
     }
 
     function fire(kind, info) {
-        if (OverlayController.launcherBusy)
+        if (OverlayController.launcherOpen || OverlayController.launcherBusy)
             return
         const ws = NiriService.workspaces[info.ws]
         hudKind = kind
         hudWs = info.ws != null ? info.ws : -1
         hudFrom = info.from != null ? info.from : -1
+        hudFromWinId = info.fromId != null ? info.fromId : -1
         hudWinId = info.id !== undefined ? info.id : -1
         hudSnap = info.snap || ({})
         hudDir = info.dir || 0

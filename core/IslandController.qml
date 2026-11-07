@@ -6,12 +6,12 @@ import ".."
 
 Singleton {
     id: root
-    // island state: "window" or "volume"
-    property string islandMode: "window"
+    // The resting state is the clock; transient alerts return here.
+    property string islandMode: "clock"
     Timer {
         id: islandTimer
         interval: 2200
-        onTriggered: root.islandMode = "window"
+        onTriggered: root.islandMode = "clock"
     }
     function showVolume() {
         islandMode = "volume"

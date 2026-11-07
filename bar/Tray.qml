@@ -8,8 +8,8 @@ import Quickshell.Widgets
 Row {
     id: tray
     property var window
-    // tray ids to hide (the Wi-Fi menu replaces nm-applet)
-    readonly property var hiddenIds: ["nm-applet"]
+    // Custom menus replace these standalone status applets.
+    readonly property var hiddenIds: ["nm-applet", "blueman"]
     spacing: 8
 
     Repeater {

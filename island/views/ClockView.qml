@@ -4,10 +4,10 @@ import "../.."
 
 Item {
     id: view
-    property bool active: IslandController.islandMode === "window"
-    implicitWidth: titleText.width + (CaptureService.recording ? 72 : 0)
+    property bool active: IslandController.islandMode === "clock"
+    implicitWidth: Theme.islandBaseWidth - 36
     implicitHeight: 42
-    // base state: window title (with a recording indicator while capturing)
+    // Fixed-width date/time base, retaining the recording indicator.
     Row {
         id: recBadge
         visible: CaptureService.recording
@@ -40,8 +40,7 @@ Item {
         }
         Text {
             anchors.verticalCenter: parent.verticalCenter
-            text: Qt.formatTime(new Date(0, 0, 0, 0, Math.floor(CaptureService.recSecs / 60) % 60,
-                                         CaptureService.recSecs % 60), "mm:ss")
+            text: Qt.formatTime(new Date(0, 0, 0, 0, Math.floor(CaptureService.recSecs / 60) % 60, CaptureService.recSecs % 60), "mm:ss")
             color: "#ff9a9a"
             font.family: Theme.fontFamily
             font.pixelSize: 14
@@ -59,9 +58,9 @@ Item {
                 easing.type: Easing.OutCubic
             }
         }
-        width: Math.min(implicitWidth, 560)
+        width: Math.min(implicitWidth, Math.max(0, view.width - 36 - (CaptureService.recording ? 72 : 0)))
         elide: Text.ElideRight
-        text: NiriService.windowTitle
+        text: SystemService.clockText
         color: Theme.text
         font.family: Theme.fontFamily
         font.pixelSize: 15

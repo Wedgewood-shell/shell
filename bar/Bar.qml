@@ -21,19 +21,19 @@ PanelWindow {
     exclusiveZone: 50
     color: "transparent"
 
-    // ---- left: media ----
-    MediaPill {
+    // ---- left: focused window ----
+    WindowTitlePill {
         anchors.left: parent.left
+        maxWidth: Math.min(Theme.windowTitleMaxWidth, Math.max(0, bar.width / 2 - Theme.islandBaseWidth / 2 - 24))
     }
 
     // ---- center: dynamic island ----
     Island {
         anchors.horizontalCenter: parent.horizontalCenter
-        opacity: (OverlayController.launcherBusy && OverlayController.launcherScreen === bar.modelData.name) || (
-                     WorkspaceController.hudBusy && WorkspaceController.hudScreen === bar.modelData.name) ? 0 : 1
+        opacity: (OverlayController.launcherBusy && OverlayController.launcherScreen === bar.modelData.name) || (WorkspaceController.hudBusy && WorkspaceController.hudScreen === bar.modelData.name) ? 0 : 1
         Behavior on opacity {
             NumberAnimation {
-                duration: 120
+                duration: Theme.islandFadeDuration
             }
         }
         onImplicitWidthChanged: OverlayController.setIslandWidth(bar.modelData.name, implicitWidth)

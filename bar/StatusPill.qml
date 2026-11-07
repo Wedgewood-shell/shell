@@ -16,8 +16,7 @@ Pill {
             anchors.verticalCenter: parent.verticalCenter
             IconLabel {
                 text: SystemService.profileIcon
-                color: SystemService.profile === "performance" ? Theme.warning : SystemService.profile === "power-saver"
-                                                                 ? "#a6da95" : Theme.success
+                color: SystemService.profile === "performance" ? Theme.warning : SystemService.profile === "power-saver" ? "#a6da95" : Theme.success
             }
             IconLabel {
                 text: SystemService.cpuUsage + "%"
@@ -45,14 +44,7 @@ Pill {
         }
         IconLabel {
             text: BatteryService.plugged ? "" + "" : BatteryService.batteryIcon() + " " + BatteryService.battery + "%"
-            color: BatteryService.plugged ? Theme.foreground : BatteryService.battery <= 15 ? Theme.danger :
-                                                                                              BatteryService.battery
-                                                                                              <= 30 ? Theme.warning :
-                                                                                                      Theme.foreground
-        }
-        IconLabel {
-            text: SystemService.clockText
-            color: Theme.text
+            color: BatteryService.plugged ? Theme.foreground : BatteryService.battery <= 15 ? Theme.danger : BatteryService.battery <= 30 ? Theme.warning : Theme.foreground
         }
     }
 }

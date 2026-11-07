@@ -7,18 +7,22 @@ Pill {
     accent: Theme.border
     color: Theme.surface
     clip: true
-    implicitWidth: (IslandController.islandMode === "volume" ? volume.implicitWidth : IslandController.islandMode
-                                                               === "battery" ? battery.implicitWidth :
-                                                                               IslandController.islandMode
-                                                                               === "bluetooth"
-                                                                               ? bluetooth.implicitWidth :
-                                                                                 IslandController.islandMode
-                                                                                 === "brightness"
-                                                                                 ? brightness.implicitWidth :
-                                                                                   IslandController.islandMode
-                                                                                   === "network"
-                                                                                   ? network.implicitWidth :
-                                                                                     title.implicitWidth) + 36
+    implicitWidth: {
+        switch (IslandController.islandMode) {
+        case "volume":
+            return volume.implicitWidth + 36
+        case "battery":
+            return battery.implicitWidth + 36
+        case "bluetooth":
+            return bluetooth.implicitWidth + 36
+        case "brightness":
+            return brightness.implicitWidth + 36
+        case "network":
+            return network.implicitWidth + 36
+        default:
+            return Theme.islandBaseWidth
+        }
+    }
     Behavior on implicitWidth {
         NumberAnimation {
             duration: 420
@@ -26,8 +30,8 @@ Pill {
             easing.overshoot: 1.1
         }
     }
-    WindowTitle {
-        id: title
+    ClockView {
+        id: clock
         anchors.fill: parent
     }
     VolumeAlert {

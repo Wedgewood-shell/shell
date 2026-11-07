@@ -27,7 +27,7 @@ Singleton {
         running: root.live
         command: ["niri", "msg", "--json", "event-stream"]
         onExited: if (root.live)
-                      reconnect.restart()
+            reconnect.restart()
         stdout: SplitParser {
             onRead: line => {
                 let ev
@@ -90,21 +90,21 @@ Singleton {
             const w = workspaces[c.workspace_id]
             if (w)
                 workspaces = Object.assign({}, workspaces, {
-                                               [c.workspace_id]: Object.assign({}, w, {
-                                                                                   active_window_id: c.active_window_id
-                                                                               })
-                                           })
+                    [c.workspace_id]: Object.assign({}, w, {
+                        active_window_id: c.active_window_id
+                    })
+                })
         } else if (ev.WindowOpenedOrChanged) {
             const w = ev.WindowOpenedOrChanged.window
             const next = Object.assign({}, windows, {
-                                           [w.id]: w
-                                       })
+                [w.id]: w
+            })
             if (w.is_focused)                       // niri: a focused window in this event means every other one lost focus
                 for (const k in next)
                     if (next[k].id !== w.id && next[k].is_focused)
                         next[k] = Object.assign({}, next[k], {
-                                                    is_focused: false
-                                                })
+                            is_focused: false
+                        })
             windows = next
         } else if (ev.WindowClosed) {
             const next = Object.assign({}, windows)
@@ -115,8 +115,8 @@ Singleton {
             const next = {}
             for (const k in windows)
                 next[k] = Object.assign({}, windows[k], {
-                                            is_focused: windows[k].id === fid
-                                        })
+                    is_focused: windows[k].id === fid
+                })
             windows = next
         } else if (ev.WindowLayoutsChanged) {
             const next = Object.assign({}, windows)
@@ -125,8 +125,8 @@ Singleton {
                 if (!w)
                     continue
                 next[ch[0]] = Object.assign({}, w, {
-                                                layout: ch[1]
-                                            })
+                    layout: ch[1]
+                })
             }
             windows = next
         } else if (ev.OverviewOpenedOrClosed) {
@@ -176,8 +176,9 @@ Singleton {
 
     // Scaled-down picture of a workspace's scrolling layout: columns left to right, tiles stacked inside.
     // Coordinates are in niri logical pixels; the caller scales them to fit.
+    readonly property int layoutGap: 16
     function computeLayout(wsId, wins) {
-        const gap = 16, maxCols = 6
+        const gap = layoutGap
         const byCol = {}
         for (const k in wins) {
             const w = wins[k]
@@ -191,23 +192,16 @@ Singleton {
             if (!byCol[c])
                 byCol[c] = []
             byCol[c].push({
-                              id: w.id,
-                              app_id: w.app_id || "",
-                              title: w.title || "",
-                              focused: !!w.is_focused,
-                              r: r,
-                              w: lay.tile_size[0],
-                              h: lay.tile_size[1]
-                          })
+                id: w.id,
+                app_id: w.app_id || "",
+                title: w.title || "",
+                focused: !!w.is_focused,
+                r: r,
+                w: lay.tile_size[0],
+                h: lay.tile_size[1]
+            })
         }
-        let cols = Object.keys(byCol).map(Number).sort((a, b) => a - b)
-        if (cols.length > maxCols) {                                        // keep the columns around the focused one
-            let fi = cols.findIndex(c => byCol[c].some(t => t.focused))
-            if (fi < 0)
-                fi = 0
-            const start = Math.max(0, Math.min(fi - 2, cols.length - maxCols))
-            cols = cols.slice(start, start + maxCols)
-        }
+        const cols = Object.keys(byCol).map(Number).sort((a, b) => a - b)
         const tiles = []
         let x = 0, H = 0
         for (const c of cols) {
@@ -215,15 +209,15 @@ Singleton {
             let colW = 0, y = 0
             for (const t of col) {
                 tiles.push({
-                               id: t.id,
-                               app_id: t.app_id,
-                               title: t.title,
-                               focused: t.focused,
-                               x: x,
-                               y: y,
-                               w: t.w,
-                               h: t.h
-                           })
+                    id: t.id,
+                    app_id: t.app_id,
+                    title: t.title,
+                    focused: t.focused,
+                    x: x,
+                    y: y,
+                    w: t.w,
+                    h: t.h
+                })
                 y += t.h + gap
                 colW = Math.max(colW, t.w)
             }
@@ -245,15 +239,15 @@ Singleton {
         return ""
     }
     readonly property var windowData: Object.values(windows).map(w => ({
-        id: w.id,
-        title: w.title || "(untitled)",
-        app_id: w.app_id || "",
-        focused: w.is_focused,
-        urgent: w.is_urgent,
-        ts: w.focus_timestamp ? w.focus_timestamp.secs + w.focus_timestamp.nanos / 1e9 : 0,
-        ws: workspaces[w.workspace_id] ? workspaces[w.workspace_id].idx : "?",
-        output: workspaces[w.workspace_id] ? workspaces[w.workspace_id].output : ""
-    }))
+                id: w.id,
+                title: w.title || "(untitled)",
+                app_id: w.app_id || "",
+                focused: w.is_focused,
+                urgent: w.is_urgent,
+                ts: w.focus_timestamp ? w.focus_timestamp.secs + w.focus_timestamp.nanos / 1e9 : 0,
+                ws: workspaces[w.workspace_id] ? workspaces[w.workspace_id].idx : "?",
+                output: workspaces[w.workspace_id] ? workspaces[w.workspace_id].output : ""
+            }))
     property var tabData: []
     function refreshTabs() {
         if (!tabFetch.running)
