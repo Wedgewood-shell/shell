@@ -16,6 +16,7 @@ CaptureMenu menus/CaptureMenu.qml
 singleton CaptureService services/CaptureService.qml
 DisplayMenu menus/DisplayMenu.qml
 singleton DisplayService services/DisplayService.qml
+singleton GestureService services/GestureService.qml
 IconLabel components/IconLabel.qml
 singleton Integration core/Integration.qml
 IpcEndpoints core/IpcEndpoints.qml

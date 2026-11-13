@@ -22,6 +22,13 @@ Item {
     property bool ready: false
     property real cameraX: 0
     property real cameraY: 0
+    // Live finger tracking: the camera follows input directly, with no easing.
+    property bool scrubbing: false
+    property real scrubIndex0: 0
+    property real scrubX0: 0
+    property int scrubWs: -1
+    // Tile highlighted while scrubbing; held until the real focus is applied by panTo.
+    property int scrubFocusId: -1
     readonly property real windowScale: rowHeight / Math.max(1, referenceHeight)
     readonly property var scene: buildScene()
     readonly property int tileCount: windowIds.count
@@ -105,10 +112,92 @@ Item {
         const point = focusPoint(wsId, windowId)
         if (!point)
             return
+        scrubFocusId = -1
         animateCamera = animated !== false
         cameraX = point.x
         cameraY = point.y
         animateCamera = true
+    }
+    // ---- live scrubbing (touchpad gestures) ----
+    // Workspace rows in visual order, each with the camera point that focuses it.
+    function scrubStops() {
+        return Object.values(scene.rows).sort((a, b) => a.y - b.y).map(r => {
+            const p = focusPoint(r.id, -1)
+            return {
+                id: r.id,
+                x: p.x,
+                y: p.y
+            }
+        })
+    }
+    // Fractional row index under the camera, so a scrub resumes mid-animation.
+    function indexAtCamera(stops) {
+        if (stops.length < 2)
+            return 0
+        if (cameraY <= stops[0].y)
+            return 0
+        for (let i = 0; i < stops.length - 1; i++)
+            if (cameraY <= stops[i + 1].y)
+                return i + (cameraY - stops[i].y) / Math.max(1, stops[i + 1].y - stops[i].y)
+        return stops.length - 1
+    }
+    // Past an edge, travel keeps going but with diminishing returns.
+    function rubber(value, low, high, limit) {
+        const squash = over => limit * (1 - Math.exp(-over / limit))
+        return value < low ? low - squash(low - value) : value > high ? high + squash(value - high) : value
+    }
+    function beginScrub() {
+        // Stop in-flight camera easing so it cannot fight the fingers.
+        cameraXAnimation.stop()
+        cameraYAnimation.stop()
+        scrubbing = true
+        scrubIndex0 = indexAtCamera(scrubStops())
+        scrubX0 = cameraX
+        const stops = scrubStops()
+        scrubWs = stops.length ? stops[Math.round(scrubIndex0)].id : -1
+        scrubFocusId = nearestTileId(scrubWs, cameraX)
+    }
+    // Tile of a row whose centre is closest to x; its active window if x is null.
+    function nearestTileId(wsId, x) {
+        const row = scene.rows[wsId]
+        const tiles = Object.values(scene.tiles).filter(t => t.ws === wsId)
+        if (!tiles.length)
+            return -1
+        if (x === null && row && scene.tiles[row.activeId])
+            return row.activeId
+        const target = x === null ? 0 : x
+        let best = tiles[0]
+        for (const t of tiles)
+            if (Math.abs(t.x + t.w / 2 - target) < Math.abs(best.x + best.w / 2 - target))
+                best = t
+        return best.id
+    }
+    function endScrub() {
+        scrubbing = false
+    }
+    // `workspaces` is signed travel in workspace units (+ = toward later rows).
+    function scrubVertical(workspaces) {
+        const stops = scrubStops()
+        if (!stops.length)
+            return
+        const index = rubber(scrubIndex0 + workspaces, 0, stops.length - 1, 0.3)
+        const lower = Math.max(0, Math.min(stops.length - 1, Math.floor(index)))
+        const upper = Math.min(stops.length - 1, lower + 1)
+        const t = index - lower
+        cameraX = stops[lower].x + (stops[upper].x - stops[lower].x) * t
+        cameraY = stops[lower].y + (stops[upper].y - stops[lower].y) * t
+        scrubWs = stops[Math.max(0, Math.min(stops.length - 1, Math.round(index)))].id
+        scrubFocusId = nearestTileId(scrubWs, null)
+    }
+    // `pixels` is signed travel in map pixels (+ = camera moves toward later columns).
+    function scrubHorizontal(pixels) {
+        const tiles = Object.values(scene.tiles).filter(t => t.ws === scrubWs)
+        if (!tiles.length)
+            return
+        const low = Math.min(...tiles.map(t => t.x + t.w / 2))
+        const high = Math.max(...tiles.map(t => t.x + t.w / 2))
+        cameraX = rubber(scrubX0 + pixels, low, high, width * 0.15)
+        scrubFocusId = nearestTileId(scrubWs, cameraX)
     }
     function tileItem(id) {
         for (let i = 0; i < tileRepeater.count; i++) {
@@ -120,15 +209,17 @@ Item {
     }
 
     Behavior on cameraX {
-        enabled: map.ready && map.animateCamera
+        enabled: map.ready && map.animateCamera && !map.scrubbing
         NumberAnimation {
+            id: cameraXAnimation
             duration: map.panDuration
             easing.type: Easing.InOutCubic
         }
     }
     Behavior on cameraY {
-        enabled: map.ready && map.animateCamera
+        enabled: map.ready && map.animateCamera && !map.scrubbing
         NumberAnimation {
+            id: cameraYAnimation
             duration: map.panDuration
             easing.type: Easing.InOutCubic
         }
@@ -233,6 +324,7 @@ Item {
                     id: tileRect
                     required property int uid
                     readonly property var tile: map.scene.tiles[uid] || null
+                    readonly property bool highlighted: tile !== null && (map.scrubFocusId >= 0 ? uid === map.scrubFocusId : tile.focused)
                     property bool positioned: false
                     Component.onCompleted: Qt.callLater(() => positioned = true)
                     visible: tile !== null
@@ -241,9 +333,9 @@ Item {
                     width: tile ? tile.w : 0
                     height: tile ? tile.h : 0
                     radius: 7 * map.previewScale
-                    color: tile && tile.focused ? "#2d3a60" : "#222a42"
-                    border.width: tile && tile.focused ? Math.max(1, 2 * map.previewScale) : 1
-                    border.color: tile && tile.focused ? Theme.highlight : "#3a4663"
+                    color: highlighted ? "#2d3a60" : "#222a42"
+                    border.width: highlighted ? Math.max(1, 2 * map.previewScale) : 1
+                    border.color: highlighted ? Theme.highlight : "#3a4663"
                     Behavior on x {
                         enabled: map.ready && map.animateChanges && tileRect.positioned
                         NumberAnimation {

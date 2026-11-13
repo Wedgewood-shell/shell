@@ -47,15 +47,90 @@ PanelWindow {
         }
     }
     Connections {
+        target: WorkspaceController
+        function onGestureStarted(axis) {
+            hud.beginScrub(axis)
+        }
+        function onGestureMoved(amount) {
+            hud.scrub(amount)
+        }
+        function onGestureEnded() {
+            hud.endScrub()
+        }
+    }
+    Connections {
         target: OverlayController
         function onDismissHud() {
             linger.stop()
+            settle.stop()
+            if (hud.scrubbing)
+                hud.endScrub()
             hud.open = false
             hud.useSnap = false
         }
     }
 
+    // ---- live touchpad swipe: the camera follows the fingers ----
+    property bool scrubbing: false
+    property string scrubAxis: ""
+    // Niri's travel per unit: 300 gesture units = one workspace, 1200 = one screen width.
+    readonly property real workspaceTravel: 300
+    readonly property real columnTravel: 1200
+
+    function beginScrub(axis) {
+        const wasOpen = open
+        linger.stop()
+        settle.stop()
+        kind = "switch"
+        ws = WorkspaceController.hudWs
+        fromWs = ws
+        moveId = -1
+        useSnap = false
+        if (!wasOpen)
+            map.panTo(ws, -1, false)
+        scrubAxis = axis
+        scrubbing = true
+        map.beginScrub()
+        open = true
+    }
+    function scrub(amount) {
+        if (!scrubbing)
+            return
+        if (scrubAxis === "v")
+            map.scrubVertical(amount / workspaceTravel)
+        else
+            map.scrubHorizontal(amount / columnTravel * (screen ? screen.width : 1536) * map.windowScale)
+        if (map.scrubWs >= 0)
+            ws = map.scrubWs
+    }
+    function endScrub() {
+        if (!scrubbing)
+            return
+        scrubbing = false
+        map.endScrub()
+        linger.interval = 1600
+        linger.restart()
+        // Niri's real result normally arrives within a frame or two and animates
+        // the camera via begin(). If nothing changed (swipe returned to the same
+        // column/workspace), settle back on the current focus instead.
+        settle.restart()
+    }
+    Timer {
+        id: settle
+        interval: 350
+        onTriggered: {
+            const active = NiriService.wsOnOutput(WorkspaceController.hudScreen).find(w => w.is_active)
+            if (!active)
+                return
+            hud.ws = active.id
+            map.panTo(active.id, -1)
+        }
+    }
+
     function begin() {
+        if (scrubbing)
+            return
+        settle.stop()
         const wasOpen = open
         kind = WorkspaceController.hudKind
         ws = WorkspaceController.hudWs
