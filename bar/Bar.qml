@@ -43,15 +43,53 @@ PanelWindow {
     // ---- right: tray + status ----
     Row {
         anchors.right: parent.right
-        spacing: 8
+        spacing: 0
 
-        Pill {
-            visible: trayRow.implicitWidth > 0
-            implicitWidth: trayRow.implicitWidth + 26
-            Tray {
-                id: trayRow
-                anchors.centerIn: parent
-                window: bar
+        // Date/time, shown here while a non-clock base state owns the island.
+        Item {
+            id: clockSlot
+            readonly property bool shown: IslandController.clockInBar
+            property real p: shown ? 1 : 0
+            Behavior on p {
+                NumberAnimation {
+                    duration: 380
+                    easing.type: Easing.OutCubic
+                }
+            }
+            visible: p > 0
+            height: Theme.barHeight
+            width: (barClock.implicitWidth + 26 + 8) * p
+            clip: true
+            Pill {
+                anchors.left: parent.left
+                width: barClock.implicitWidth + 26
+                height: parent.height
+                opacity: clockSlot.p
+                Text {
+                    id: barClock
+                    anchors.centerIn: parent
+                    text: SystemService.clockText
+                    color: Theme.text
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 14
+                    font.weight: Font.DemiBold
+                }
+            }
+        }
+
+        Item {
+            visible: trayWrap.visible
+            width: trayWrap.width + 8
+            height: Theme.barHeight
+            Pill {
+                id: trayWrap
+                visible: trayRow.implicitWidth > 0
+                implicitWidth: trayRow.implicitWidth + 26
+                Tray {
+                    id: trayRow
+                    anchors.centerIn: parent
+                    window: bar
+                }
             }
         }
 
