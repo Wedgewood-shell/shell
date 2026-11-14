@@ -6,7 +6,7 @@ import "../.."
 Item {
     id: view
     property bool active: IslandController.islandMode === "helium"
-    implicitWidth: Theme.islandBaseWidth - 36
+    implicitWidth: Theme.islandHeliumWidth - 36
     implicitHeight: 42
     readonly property string url: HeliumService.url
     readonly property bool secure: url.startsWith("https://")

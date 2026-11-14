@@ -24,7 +24,7 @@ PanelWindow {
     // ---- left: focused window ----
     WindowTitlePill {
         anchors.left: parent.left
-        maxWidth: Math.min(Theme.windowTitleMaxWidth, Math.max(0, bar.width / 2 - Theme.islandBaseWidth / 2 - 24))
+        maxWidth: Math.min(Theme.windowTitleMaxWidth, Math.max(0, bar.width / 2 - (IslandController.baseMode === "helium" ? Theme.islandHeliumWidth : Theme.islandBaseWidth) / 2 - 24))
     }
 
     // ---- center: dynamic island ----

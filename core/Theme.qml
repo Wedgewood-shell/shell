@@ -18,6 +18,7 @@ Singleton {
     readonly property color warning: "#ffd27d"
     readonly property color danger: "#ff8585"
     readonly property int islandBaseWidth: 300
+    readonly property int islandHeliumWidth: islandBaseWidth * 2
     readonly property int windowTitleMaxWidth: 400
     readonly property real workspacePreviewScale: 0.4
     readonly property real workspaceIconScale: 1.5

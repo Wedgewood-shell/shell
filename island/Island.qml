@@ -12,7 +12,7 @@ Pill {
     implicitWidth: {
         switch (IslandController.islandMode) {
         case "helium":
-            return Theme.islandBaseWidth
+            return Theme.islandHeliumWidth
         case "volume":
             return volume.implicitWidth + 36
         case "battery":
