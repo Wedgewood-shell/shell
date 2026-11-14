@@ -18,6 +18,29 @@ Singleton {
                 return "eth"
         return "none"
     }
+    // Live state for the bar icon (updated by the poll below).
+    property int netSignal: 0
+    property bool netHotspot: false
+    // NetworkManager connectivity: full | limited | portal | none | unknown
+    property string connectivity: "unknown"
+    readonly property bool noInternet: netKind !== "none" && (connectivity === "limited" || connectivity === "portal")
+    readonly property string iconKind: netKind === "none" ? "none" : netHotspot ? "hotspot" : netKind
+    readonly property int signalLevel: netSignal < 35 ? 1 : netSignal < 65 ? 2 : 3
+    Process {
+        id: connPoll
+        command: ["nmcli", "-g", "CONNECTIVITY", "general"]
+        stdout: StdioCollector {
+            onStreamFinished: root.connectivity = text.trim() || "unknown"
+        }
+    }
+    Timer {
+        interval: 5000
+        running: true
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: if (!connPoll.running)
+            connPoll.running = true
+    }
     readonly property string netIcon: netKind === "wifi" ? Theme.cp(0xF0928) : netKind === "eth" ? Theme.cp(0xF0200) : Theme.cp(0xF092D)
 
     // ---- network events (wifi / ethernet connect + disconnect) ----
@@ -51,6 +74,8 @@ Singleton {
                 const wifi = ssid !== ""
                 const tether = conns.some(l => l.startsWith("bluetooth:"))
                 const hotspot = tether || (wifi && !eth && (metered.startsWith("yes") || gateway.startsWith("172.20.10.") || /iphone|ipad|galaxy|pixel|android|oneplus|xiaomi|redmi|poco|oppo|vivo|realme|huawei|honor|hotspot|\bphone\b/i.test(ssid)))
+                root.netSignal = sig
+                root.netHotspot = hotspot
                 const kind = eth ? "eth" : wifi ? "wifi" : "none"
                 const name = eth ? "Ethernet" : ssid
                 const key = kind + ":" + name

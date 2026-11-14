@@ -51,6 +51,8 @@ PanelWindow {
             height: Theme.barHeight
             Pill {
                 id: trayWrap
+                color: "transparent"
+                border.width: 0
                 visible: trayRow.implicitWidth > 0
                 implicitWidth: trayRow.implicitWidth + 26
                 Tray {
@@ -82,6 +84,8 @@ PanelWindow {
                 anchors.right: parent.right
                 width: barClock.implicitWidth + 26
                 height: parent.height
+                color: "transparent"
+                border.width: 0
                 opacity: clockSlot.p
                 Text {
                     id: barClock

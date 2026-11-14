@@ -4,7 +4,9 @@ import ".."
 import Quickshell.Io
 
 Pill {
-    accent: "#4072cdb8"
+    accent: "transparent"
+    color: "transparent"
+    border.width: 0
     implicitWidth: status.implicitWidth + 26
     Row {
         id: status
@@ -27,10 +29,21 @@ Pill {
             text: (SystemService.tempC >= 90 ? Theme.cp(0xF0E01) : Theme.cp(0xF050F)) + " " + SystemService.tempC + "°"
             color: SystemService.tempC >= 90 ? Theme.danger : Theme.success
         }
-        IconLabel {
+        Row {
+            spacing: 3
             anchors.verticalCenter: parent.verticalCenter
-            text: NetworkService.netIcon
-            color: NetworkService.netKind === "none" ? Theme.danger : Theme.foreground
+            NetIcon {
+                anchors.verticalCenter: parent.verticalCenter
+                kind: NetworkService.iconKind
+                level: NetworkService.signalLevel
+                color: NetworkService.netKind === "none" ? Theme.danger : NetworkService.noInternet ? Theme.warning : Theme.foreground
+            }
+            IconLabel {
+                visible: NetworkService.noInternet
+                anchors.verticalCenter: parent.verticalCenter
+                text: "!"
+                color: Theme.warning
+            }
         }
         IconLabel {
             anchors.verticalCenter: parent.verticalCenter
