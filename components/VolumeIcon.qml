@@ -13,7 +13,7 @@ Canvas {
     property real s: 1
     readonly property real over: Math.max(0, Math.min(1, (volume - 1) / 0.5))
     readonly property color color: muted ? Qt.rgba(0.57, 0.6, 0.67, 1) : Qt.tint(base, Qt.rgba(1, 0.25, 0.25, over))
-    implicitWidth: 21 * s
+    implicitWidth: (kind === "headphones" ? 16 : 21) * s
     implicitHeight: 16 * s
     width: implicitWidth
     height: implicitHeight
@@ -24,6 +24,7 @@ Canvas {
         }
     }
     onKindChanged: requestPaint()
+    onWidthChanged: requestPaint()
     onVolumeChanged: requestPaint()
     onMutedChanged: requestPaint()
     onColorChanged: requestPaint()
@@ -40,28 +41,64 @@ Canvas {
         ctx.arcTo(x, y, x + w, y, r)
         ctx.closePath()
     }
-    // Shape path; filled parts via fill, band via stroke.
-    function shape(ctx) {
+    function capsule(ctx, cx, cy, w, h, deg) {
+        ctx.save()
+        ctx.translate(cx, cy)
+        ctx.rotate(deg * Math.PI / 180)
         ctx.beginPath()
+        rrect(ctx, -w / 2, -h / 2, w, h, w / 2)
+        ctx.restore()
+    }
+    // Draws the shape at alpha `a`; secondary details (pads, inner band) at half strength.
+    function shape(ctx, a) {
+        ctx.fillStyle = rgba(a)
+        ctx.strokeStyle = rgba(a)
         if (kind === "earbuds") {
+            ctx.beginPath()
             for (const m of [0, 1]) {
                 const cx = m === 0 ? 5.2 : 15.8
                 ctx.moveTo(cx + 4.2, 5)
                 ctx.arc(cx, 5, 4.2, 0, Math.PI * 2, false)
                 rrect(ctx, cx + (m === 0 ? 1.4 : -3.4), 8, 2, 7.5, 1)
             }
-        } else {
-            rrect(ctx, 1, 8.5, 4.2, 6.5, 1.8)
-            rrect(ctx, 15.8, 8.5, 4.2, 6.5, 1.8)
+            ctx.fill()
+            return
         }
+        // Headphones are traced in the reference image's pixel space
+        // (bbox ~74..182 x 74..191) and mapped onto the 16-unit icon height.
+        ctx.save()
+        const k = 16 / 117
+        ctx.translate((icon.implicitWidth / icon.s - 108 * k) / 2, 0)
+        ctx.scale(k, k)
+        ctx.translate(-74, -74)
+        // headband: thick arc, slimming into a neck above each cup
+        ctx.lineCap = "butt"
+        ctx.lineWidth = 12
+        ctx.beginPath()
+        ctx.arc(128, 127, 46.5, Math.PI + 0.22, 2 * Math.PI - 0.22, false)
+        ctx.stroke()
+        ctx.lineWidth = 7
+        ctx.beginPath()
+        ctx.arc(128, 128, 49, Math.PI - 0.17, 2 * Math.PI + 0.17, false)
+        ctx.stroke()
+        // ear cups, bottoms tilted inward
+        capsule(ctx, 93, 166, 22, 52, -24)
         ctx.fill()
-        if (kind === "headphones") {
-            ctx.lineWidth = 1.8
-            ctx.lineCap = "round"
-            ctx.beginPath()
-            ctx.arc(10.5, 9.5, 7.6, Math.PI, 2 * Math.PI, false)
-            ctx.stroke()
-        }
+        capsule(ctx, 163, 166, 22, 52, 24)
+        ctx.fill()
+        // softer details: cushions + inner headband pad
+        ctx.fillStyle = rgba(a * 0.55)
+        capsule(ctx, 108.5, 158, 10, 49, -25)
+        ctx.fill()
+        capsule(ctx, 147.5, 158, 10, 49, 25)
+        ctx.fill()
+        ctx.beginPath()
+        ctx.moveTo(101, 101)
+        ctx.quadraticCurveTo(128, 82, 155, 101)
+        ctx.quadraticCurveTo(128, 95, 101, 101)
+        ctx.closePath()
+        ctx.fill()
+        ctx.restore()
     }
     onPaint: {
         const ctx = getContext("2d")
@@ -100,17 +137,13 @@ Canvas {
                 ctx.stroke()
             }
         } else {
-            ctx.fillStyle = rgba(0.28)
-            ctx.strokeStyle = rgba(0.28)
-            shape(ctx)
+            shape(ctx, 0.28)
             if (v > 0) {
                 ctx.save()
                 ctx.beginPath()
                 ctx.rect(0, 16 * (1 - v), 21, 16 * v + 1)
                 ctx.clip()
-                ctx.fillStyle = rgba(1)
-                ctx.strokeStyle = rgba(1)
-                shape(ctx)
+                shape(ctx, 1)
                 ctx.restore()
             }
         }
