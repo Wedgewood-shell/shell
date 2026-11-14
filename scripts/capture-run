@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# Non-interactive capture backend used by the Quickshell island.
+# Usage: capture-run screenshot|video screen [output]
+#        capture-run screenshot|video area
+#        capture-run screenshot window <window-id>
+#        capture-run stop
+set -uo pipefail
+
+screenshots="$HOME/Pictures/Screenshots"
+recordings="$HOME/Videos/Screen recordings"
+runtime="${XDG_RUNTIME_DIR:-/tmp}/capture-menu"
+pid_file="$runtime/recording.pid"
+mkdir -p "$screenshots" "$recordings" "$runtime"
+
+if [[ "${1:-}" == stop ]]; then
+    read -r pid < "$pid_file" 2>/dev/null || exit 1
+    if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then
+        kill -INT "$pid" 2>/dev/null || true
+        rm -f "$pid_file"
+        notify-send -a "Screen capture" "Recording stopped" "Saved in $recordings"
+    else
+        rm -f "$pid_file"
+        notify-send -a "Screen capture" "No recording is running"
+    fi
+    exit 0
+fi
+
+capture_kind=${1:?kind}
+scope=${2:?scope}
+# Third argument: window id for scope=window, output name for scope=screen.
+target=${3:-}
+target_window=''
+[[ "$scope" == window ]] && target_window=$target
+
+geometry=''
+if [[ "$scope" == area || "$scope" == window ]]; then
+    if [[ "$scope" == window && -n "$target_window" ]]; then
+        : # direct window capture via niri screenshot-window below
+    else
+        if [[ "$scope" == window ]]; then
+            notify-send -a "Screen capture" "Select a window" "Drag around the window to capture it; press Esc to cancel."
+        fi
+        if [[ "$capture_kind" == video ]]; then
+            selection=$(slurp -d -c '#8bd5cf' -s '#8bd5cf33' -w 2 -f '%o|%X,%Y %Wx%H') || exit 0
+            [[ -n "$selection" ]] || exit 0
+            record_output=${selection%%|*}
+            geometry=${selection#*|}
+        else
+            geometry=$(slurp -d -c '#8bd5cf' -s '#8bd5cf33' -w 2) || exit 0
+            [[ -n "$geometry" ]] || exit 0
+        fi
+    fi
+fi
+
+# Output to capture for scope=screen: the one passed in, else the focused output.
+screen_name() {
+    if [[ -n "$target" ]]; then
+        printf '%s\n' "$target"
+    else
+        niri msg --json focused-output | python3 -c 'import json,sys; print(json.load(sys.stdin)["name"])'
+    fi
+}
+
+stamp=$(date '+%Y-%m-%d_%H-%M-%S')
+if [[ "$capture_kind" == screenshot ]]; then
+    output="$screenshots/Screenshot-$stamp.png"
+    if [[ "$scope" == window && -n "$target_window" ]]; then
+        tmp_img="$runtime/capture-$target_window-$stamp.png"
+        niri msg action screenshot-window --id "$target_window" --path "$tmp_img" || exit 1
+        python3 "$HOME/.config/quickshell/scripts/window-shot.py" flatten "$tmp_img" "$target_window" || exit 1
+        satty --filename "$tmp_img" --output-filename "$output" --copy-command wl-copy
+        status=$?
+        rm -f "$tmp_img"
+        exit $status
+    elif [[ "$scope" == screen ]]; then
+        display=$(screen_name) || exit 1
+        grim -o "$display" - | satty --filename - --output-filename "$output" --copy-command wl-copy
+    else
+        grim -g "$geometry" - | satty --filename - --output-filename "$output" --copy-command wl-copy
+    fi
+    exit $?
+fi
+
+output="$recordings/Recording-$stamp.mp4"
+if [[ "$scope" == screen ]]; then
+    record_output=$(screen_name) || exit 1
+    wf-recorder -o "$record_output" -f "$output" >"$runtime/recording.log" 2>&1 &
+else
+    wf-recorder -o "$record_output" -g "$geometry" -f "$output" >"$runtime/recording.log" 2>&1 &
+fi
+pid=$!
+sleep 0.4
+if kill -0 "$pid" 2>/dev/null; then
+    printf '%s\n' "$pid" > "$pid_file"
+else
+    notify-send -a "Screen capture" "Could not start recording" "See $runtime/recording.log"
+fi
