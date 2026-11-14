@@ -45,12 +45,31 @@ Pill {
     Canvas {
         id: progressRing
         readonly property real lw: 2
-        readonly property real shown: HeliumService.loading ? HeliumService.progress : 0
-        property real drawn: shown
+        // Follows load progress; on completion it runs to 1 and the ring then fades
+        // out in place (it never rewinds). A new load restarts from its own value.
+        property bool animate: true
+        property real drawn: 0
         Behavior on drawn {
+            enabled: progressRing.animate
             NumberAnimation {
                 duration: 180
                 easing.type: Easing.OutCubic
+            }
+        }
+        Connections {
+            target: HeliumService
+            function onProgressChanged() {
+                if (HeliumService.loading)
+                    progressRing.drawn = HeliumService.progress
+            }
+            function onLoadingChanged() {
+                if (HeliumService.loading) {
+                    progressRing.animate = false
+                    progressRing.drawn = HeliumService.progress
+                    progressRing.animate = true
+                } else {
+                    progressRing.drawn = 1
+                }
             }
         }
         anchors.fill: parent
