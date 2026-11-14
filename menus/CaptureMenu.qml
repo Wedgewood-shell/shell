@@ -3,40 +3,110 @@ import Quickshell
 import QtQuick.Effects
 import ".."
 
+// Single-level capture menu. The top row picks the mode (Snap / Record, toggled
+// with Tab); the tiles below pick what to capture. "Window" in photo mode opens
+// a searchable window list with a live preview.
 MenuPage {
     id: page
-    tiles: CaptureService.captureStage !== "window"
-    title: {
-        if (CaptureService.captureStage === "kind")
-            return "Capture"
-        if (CaptureService.captureStage === "scope")
-            return CaptureService.captureKind === "video" ? "Record — what to include?" : "Screenshot — what to include?"
-        return "Screenshot — select a window"
-    }
+    readonly property bool inWindowList: CaptureService.captureStage === "window"
+    readonly property bool videoMode: CaptureService.captureKind === "video"
+    readonly property bool stopping: videoMode && CaptureService.recording
 
-    glyph: CaptureService.captureStage === "window" ? "\uf2d0" : "\uf030"
-    maxRows: CaptureService.captureStage === "window" ? 4 : 7
-    contentWidth: tiles ? Math.max(340, tilesWidth + 44) : 620
+    tiles: !inWindowList
+    showHeader: inWindowList
+    title: "Select a window"
+    glyph: "\uf2d0"
+    maxRows: 4
+    tileY: 108
+    contentWidth: tiles ? 380 : 620
     contentHeight: {
         if (tiles)
-            return 172
+            return tileY + 104 + 14
         if (page.results.length === 0)
             return 110
         return 56 + Math.min(page.results.length, maxRows) * 46 + 6
     }
 
+    // Top row. Fixed width so both buttons line up with the three tiles below.
+    readonly property var modes: [
+        {
+            kind: "screenshot",
+            label: "Snap",
+            glyph: "\uf030",
+            tint: Theme.highlight
+        },
+        {
+            kind: "video",
+            label: "Record",
+            glyph: "\uf03d",
+            tint: Theme.danger
+        }
+    ]
+    Row {
+        id: modeRow
+        y: 50
+        anchors.horizontalCenter: parent.horizontalCenter
+        spacing: 12
+        visible: !page.inWindowList
+        Repeater {
+            model: page.modes
+            delegate: Rectangle {
+                id: modeButton
+                required property var modelData
+                readonly property bool selected: CaptureService.captureKind === modelData.kind
+                readonly property bool isStop: modelData.kind === "video" && CaptureService.recording
+                readonly property color tint: isStop ? Theme.danger : modelData.tint
+                width: 162
+                height: 46
+                radius: 14
+                color: Qt.rgba(tint.r, tint.g, tint.b, selected ? 0.30 : 0.10)
+                border.width: selected ? 2 : 1
+                border.color: Qt.rgba(tint.r, tint.g, tint.b, selected ? 0.95 : 0.35)
+                Behavior on color {
+                    ColorAnimation {
+                        duration: 150
+                    }
+                }
+                Row {
+                    anchors.centerIn: parent
+                    spacing: 10
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: modeButton.isStop ? "\uf04d" : modeButton.modelData.glyph
+                        color: modeButton.tint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 16
+                    }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: modeButton.isStop ? "Stop" : modeButton.modelData.label
+                        color: modeButton.selected ? Theme.text : "#cdd5ee"
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 13
+                        font.weight: Font.DemiBold
+                    }
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: CaptureService.captureKind = modelData.kind
+                }
+            }
+        }
+    }
+
     // Live preview below the pill, sized to the window's aspect ratio.
-    readonly property bool showPreview: CaptureService.captureStage === "window" && page.results.length > 0
+    readonly property bool showPreview: inWindowList && page.results.length > 0
     readonly property size previewMax: Qt.size(620, 360)
     detailHeight: previewMax.height
-    // Kept through the window stage and briefly after leaving it, so the preview
+    // Kept through the window list and briefly after leaving it, so the preview
     // fades out instead of popping (also keeps the surface size steady meanwhile).
-    property bool keepPreview: CaptureService.captureStage === "window"
+    property bool keepPreview: inWindowList
     detail: keepPreview ? previewComponent : null
     Timer {
         id: previewLinger
         interval: 250
-        onTriggered: page.keepPreview = CaptureService.captureStage === "window"
+        onTriggered: page.keepPreview = page.inWindowList
     }
 
     readonly property var currentWin: (page.results && page.results.length > 0 && page.currentIndex >= 0 && page.currentIndex < page.results.length)
@@ -46,13 +116,16 @@ MenuPage {
     Connections {
         target: CaptureService
         function onCaptureStageChanged() {
-            if (CaptureService.captureStage === "window") {
+            if (page.inWindowList) {
                 previewLinger.stop()
                 page.keepPreview = true
             } else {
                 previewLinger.restart()
             }
             page.clearQuery()
+            page.refresh()
+        }
+        function onCaptureKindChanged() {
             page.refresh()
         }
         function onRecordingChanged() {
@@ -63,7 +136,7 @@ MenuPage {
     Connections {
         target: NiriService
         function onWindowDataChanged() {
-            if (CaptureService.captureStage === "window")
+            if (page.inWindowList)
                 page.refresh()
         }
     }
@@ -71,22 +144,30 @@ MenuPage {
     Connections {
         target: OverlayController
         function onLauncherOpenChanged() {
-            if (!OverlayController.launcherOpen)
-                resetAfterClose.restart()
-            else
+            if (OverlayController.launcherOpen) {
                 resetAfterClose.stop()
+                if (!page.inWindowList)
+                    page.resetMode()
+            } else {
+                resetAfterClose.restart()
+            }
         }
     }
 
-    // Reset once the collapse has finished, so neither the list nor the preview
-    // changes while they are fading out.
+    // Back to the tiles once the collapse has finished, so neither the list nor
+    // the preview changes while they are fading out.
     Timer {
         id: resetAfterClose
         interval: 450
         onTriggered: if (!OverlayController.launcherOpen) {
-            CaptureService.captureStage = "kind"
-            CaptureService.captureKind = ""
+            CaptureService.captureStage = "scope"
+            page.resetMode()
         }
+    }
+
+    // Start in Record while a recording is running, so its Stop tile is ready.
+    function resetMode() {
+        CaptureService.captureKind = CaptureService.recording ? "video" : "screenshot"
     }
 
     function iconFor(appId) {
@@ -95,62 +176,39 @@ MenuPage {
     }
 
     function filter(q) {
-        if (CaptureService.captureStage === "kind") {
-            const items = []
-            if (CaptureService.recording)
-                items.push({
-                               name: "Stop recording",
-                               label: "Stop",
-                               sub: "recording in progress",
-                               glyph: "\uf04d",
-                               tint: Theme.danger,
-                               cap: "stop"
-                           })
-            items.push({
-                           name: "Take a screenshot",
-                           label: "Screenshot",
-                           sub: "annotate with satty",
-                           glyph: "\uf030",
-                           cap: "screenshot"
-                       })
-            if (!CaptureService.recording)
-                items.push({
-                               name: "Record a video",
-                               label: "Record",
-                               sub: "mp4 · wf-recorder",
-                               glyph: "\uf03d",
-                               tint: Theme.danger,
-                               cap: "video"
-                           })
-            return items
-        }
-        if (CaptureService.captureStage === "scope") {
+        if (!inWindowList) {
+            if (stopping)
+                return [
+                            {
+                                name: "Stop recording",
+                                label: "Stop",
+                                glyph: "\uf04d",
+                                tint: Theme.danger,
+                                act: "stop"
+                            }
+                        ]
             return [
-                {
-                    name: "Entire screen",
-                    label: "Screen",
-                    sub: "",
-                    glyph: "\uf108",
-                    scope: "screen"
-                },
-                {
-                    name: "Select an area",
-                    label: "Area",
-                    sub: "drag a region",
-                    glyph: "\uf125",
-                    scope: "area"
-                },
-                {
-                    name: "Select a window",
-                    label: "Window",
-                    sub: CaptureService.captureKind === "video" ? "drag around it" : "choose from list",
-                    glyph: "\uf2d0",
-                    scope: "window"
-                }
-            ]
+                        {
+                            name: "Entire screen",
+                            label: "Screen",
+                            glyph: "\uf108",
+                            scope: "screen"
+                        },
+                        {
+                            name: "Select an area",
+                            label: "Area",
+                            glyph: "\uf125",
+                            scope: "area"
+                        },
+                        {
+                            name: "Select a window",
+                            label: "Window",
+                            glyph: "\uf2d0",
+                            scope: "window"
+                        }
+                    ]
         }
 
-        // CaptureService.captureStage === "window"
         q = (q || "").trim().toLowerCase()
         const rank = text => {
             if (!text)
@@ -165,8 +223,7 @@ MenuPage {
             return text.includes(q) ? 1 : 0
         }
         let items = NiriService.windowData.map(w => {
-            const id = (w.app_id || "").toLowerCase()
-            const entry = id ? DesktopEntries.heuristicLookup(w.app_id) : null
+            const entry = w.app_id ? DesktopEntries.heuristicLookup(w.app_id) : null
             const appRank = q ? Math.max(rank(w.app_id), rank(entry ? entry.name : "")) : 0
             const titleRank = q ? rank(w.title) : 0
             return {
@@ -174,8 +231,6 @@ MenuPage {
                 sub: w.app_id + "  ·  workspace " + w.ws + (w.focused ? "  ·  current" : ""),
                 icon: page.iconFor(w.app_id),
                 id: w.id,
-                app_id: w.app_id,
-                ws: w.ws,
                 ts: w.ts,
                 total: appRank > 0 ? 10 + appRank : titleRank
             }
@@ -196,23 +251,16 @@ MenuPage {
     function activate(item) {
         if (!item)
             return
-        if (item.cap) {
-            if (item.cap === "stop") {
-                OverlayController.launcherOpen = false
-                CaptureService.runCapture("stop", "")
-                return
-            }
-            CaptureService.captureKind = item.cap
-            CaptureService.captureStage = "scope"
-            page.refresh()
+        if (item.act === "stop") {
+            OverlayController.launcherOpen = false
+            CaptureService.runCapture("stop", "")
+            return
+        }
+        if (item.scope === "window" && CaptureService.captureKind === "screenshot") {
+            CaptureService.captureStage = "window"
             return
         }
         if (item.scope) {
-            if (item.scope === "window" && CaptureService.captureKind === "screenshot") {
-                CaptureService.captureStage = "window"
-                page.refresh()
-                return
-            }
             OverlayController.launcherOpen = false
             CaptureService.runCapture(CaptureService.captureKind, item.scope)
             return
@@ -220,24 +268,20 @@ MenuPage {
         if (item.id !== undefined) {
             OverlayController.launcherOpen = false
             CaptureService.runCapture("screenshot", "window", item.id)
-            return
         }
     }
 
     function handleKey(key) {
-        if (key === Qt.Key_Escape || key === Qt.Key_Backspace) {
-            if (CaptureService.captureStage === "window") {
-                if (key === Qt.Key_Backspace && query.length > 0)
-                    return false
+        if (inWindowList) {
+            if (key === Qt.Key_Escape || (key === Qt.Key_Backspace && query.length === 0)) {
                 CaptureService.captureStage = "scope"
-                page.clearQuery()
                 return true
             }
-            if (CaptureService.captureStage === "scope") {
-                CaptureService.captureStage = "kind"
-                page.clearQuery()
-                return true
-            }
+            return false
+        }
+        if (key === Qt.Key_Tab || key === Qt.Key_Backtab) {
+            CaptureService.captureKind = videoMode ? "screenshot" : "video"
+            return true
         }
         return false
     }
@@ -245,7 +289,7 @@ MenuPage {
     Text {
         anchors.horizontalCenter: parent.horizontalCenter
         y: 68
-        visible: CaptureService.captureStage === "window" && page.results.length === 0
+        visible: page.inWindowList && page.results.length === 0
         text: "No open windows match"
         color: Theme.muted
         font.family: Theme.fontFamily

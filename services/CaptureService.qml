@@ -6,8 +6,8 @@ import ".."
 
 Singleton {
     id: root
-    property string captureStage: "kind"      // "kind" | "scope" | "window"
-    property string captureKind: ""
+    property string captureStage: "scope"   // "scope" (mode row + tiles) | "window" (window list)
+    property string captureKind: "screenshot" // "screenshot" | "video", toggled with Tab
     property int recSecs: -1                   // -1 = not recording
     readonly property bool recording: recSecs >= 0
 

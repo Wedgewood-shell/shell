@@ -14,6 +14,7 @@ Item {
     property bool showResults: true
     property int maxRows: 7
     property real listY: 50
+    property real tileY: 54
     property var results: []
     // Optional surface shown below the menu pill (not clipped by it), e.g. a preview.
     // `detailHeight` reserves room for it in the layer surface.
@@ -53,7 +54,7 @@ Item {
     ResultList {
         id: list
         x: page.tiles ? (parent.width - page.tilesWidth) / 2 : 8
-        y: page.tiles ? 54 : page.listY
+        y: page.tiles ? page.tileY : page.listY
         width: page.tiles ? page.tilesWidth : parent.width - 16
         height: page.tiles ? 104 : Math.min(page.results.length, page.maxRows) * 46
         visible: page.showResults

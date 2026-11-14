@@ -57,7 +57,7 @@ Singleton {
     }
 
     function resetStages() {
-        CaptureService.captureStage = "kind"
+        CaptureService.captureStage = "scope"
         DisplayService.displayStage = "main"
         SessionService.sessionStage = "main"
         WifiService.wifiStage = "list"
