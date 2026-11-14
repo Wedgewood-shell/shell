@@ -189,6 +189,7 @@ PanelWindow {
         border.color: Theme.border
         opacity: 1
         Island {
+            showProgress: false
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
             width: parent.width

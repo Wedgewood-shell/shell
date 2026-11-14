@@ -15,7 +15,8 @@ PanelWindow {
             capture: capturePage,
             display: displayPage,
             power: powerPage,
-            session: sessionPage
+            session: sessionPage,
+            address: addressPage
         })
     readonly property var page: menuLoader.item
     readonly property real closedWidth: OverlayController.islandWidths[screen ? screen.name : OverlayController.launcherScreen] ?? 300
@@ -77,10 +78,12 @@ PanelWindow {
     function prepare() {
         if (!page)
             return
-        field.text = ""
+        field.text = page.initialText
         page.refresh()
         syncLayout()
         field.forceActiveFocus()
+        if (page.initialText)
+            field.selectAll()
     }
     onPageChanged: if (open)
         prepare()
@@ -107,6 +110,7 @@ PanelWindow {
         height: geometry.height
         opacity: 1
         Island {
+            showProgress: false
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
             width: parent.width
@@ -218,6 +222,10 @@ PanelWindow {
         anchors.topMargin: win.detailGap
         active: win.page !== null && win.page.detail !== null
         sourceComponent: win.page ? win.page.detail : null
+    }
+    Component {
+        id: addressPage
+        AddressMenu {}
     }
     Component {
         id: appsPage

@@ -23,8 +23,11 @@ VolumeIcon components/VolumeIcon.qml
 singleton Integration core/Integration.qml
 IpcEndpoints core/IpcEndpoints.qml
 Island island/Island.qml
+singleton HeliumService services/HeliumService.qml
 singleton IslandController core/IslandController.qml
 WindowTitlePill bar/WindowTitlePill.qml
+AddressMenu menus/AddressMenu.qml
+HeliumView island/views/HeliumView.qml
 MenuPage components/MenuPage.qml
 MenuWindow menus/MenuWindow.qml
 NetworkAlert island/views/NetworkAlert.qml

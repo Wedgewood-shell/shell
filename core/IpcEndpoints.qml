@@ -36,6 +36,14 @@ Scope {
 
     IpcHandler {
         target: "launcher"
+        // Ctrl+L: open the Helium address editor. Returns false when no Helium
+        // window is focused so the caller can pass the key through.
+        function address(): bool {
+            if (!HeliumService.active && !(OverlayController.launcherOpen && OverlayController.launcherMode === "address"))
+                return false
+            OverlayController.openLauncher("address")
+            return true
+        }
         function toggle(): void {
             OverlayController.openLauncher("apps")
         }

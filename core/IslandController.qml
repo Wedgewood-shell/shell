@@ -9,7 +9,10 @@ Singleton {
     // Base state: persists while its condition holds ("clock" is the default;
     // other base states override it). Ephemeral states (alerts, menus) are
     // timed / user-driven and fall back to the current base state.
-    property string baseMode: "clock"
+    // Follows Helium: while one of its windows has focus (or the address editor
+    // that took its focus is open) the island shows the address bar.
+    readonly property bool heliumBase: HeliumService.active || (OverlayController.launcherOpen && OverlayController.launcherMode === "address")
+    readonly property string baseMode: heliumBase ? "helium" : "clock"
     property string islandMode: baseMode
     // When the island shows something other than the clock as its base,
     // the date/time moves into the bar's right module.

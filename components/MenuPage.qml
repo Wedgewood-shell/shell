@@ -10,6 +10,8 @@ Item {
     property bool tiles: false
     property bool inputReadOnly: tiles
     property bool password: false
+    // Text the input starts with (selected) when the page opens.
+    property string initialText: ""
     property bool showHeader: true
     property bool showResults: true
     property int maxRows: 7

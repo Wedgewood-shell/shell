@@ -4,11 +4,15 @@ import ".."
 
 Pill {
     id: pill
+    // Page-load progress traced around the island's perimeter.
+    property bool showProgress: true
     accent: Theme.border
     color: Theme.surface
     clip: true
     implicitWidth: {
         switch (IslandController.islandMode) {
+        case "helium":
+            return Theme.islandBaseWidth
         case "volume":
             return volume.implicitWidth + 36
         case "battery":
@@ -33,6 +37,96 @@ Pill {
     ClockView {
         id: clock
         anchors.fill: parent
+    }
+    HeliumView {
+        id: helium
+        anchors.fill: parent
+    }
+    Canvas {
+        id: progressRing
+        readonly property real lw: 2
+        readonly property real shown: HeliumService.loading ? HeliumService.progress : 0
+        property real drawn: shown
+        Behavior on drawn {
+            NumberAnimation {
+                duration: 180
+                easing.type: Easing.OutCubic
+            }
+        }
+        anchors.fill: parent
+        visible: pill.showProgress && opacity > 0
+        opacity: HeliumService.active && HeliumService.loading ? 1 : 0
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 260
+            }
+        }
+        onDrawnChanged: requestPaint()
+        onWidthChanged: requestPaint()
+        onHeightChanged: requestPaint()
+        onVisibleChanged: requestPaint()
+        onPaint: {
+            const ctx = getContext("2d")
+            ctx.reset()
+            ctx.clearRect(0, 0, width, height)
+            if (drawn <= 0)
+                return
+            const o = lw / 2, w = width - lw, h = height - lw
+            const r = Math.max(1, Math.min(Theme.closedRadius - o, w / 2, h / 2))
+            const q = Math.PI * r / 2
+            // clockwise from top centre
+            const segs = [{
+                    "len": w / 2 - r,
+                    "pt": t => [o + w / 2 + t, o]
+                }, {
+                    "len": q,
+                    "arc": [o + w - r, o + r, -Math.PI / 2]
+                }, {
+                    "len": h - 2 * r,
+                    "pt": t => [o + w, o + r + t]
+                }, {
+                    "len": q,
+                    "arc": [o + w - r, o + h - r, 0]
+                }, {
+                    "len": w - 2 * r,
+                    "pt": t => [o + w - r - t, o + h]
+                }, {
+                    "len": q,
+                    "arc": [o + r, o + h - r, Math.PI / 2]
+                }, {
+                    "len": h - 2 * r,
+                    "pt": t => [o, o + h - r - t]
+                }, {
+                    "len": q,
+                    "arc": [o + r, o + r, Math.PI]
+                }, {
+                    "len": w / 2 - r,
+                    "pt": t => [o + r + t, o]
+                }]
+            let total = 0
+            for (const s of segs)
+                total += s.len
+            let left = Math.min(1, drawn) * total
+            ctx.strokeStyle = Theme.highlight
+            ctx.lineWidth = lw
+            ctx.lineCap = "butt"
+            ctx.beginPath()
+            ctx.moveTo(o + w / 2, o)
+            for (const s of segs) {
+                if (left <= 0)
+                    break
+                const d = Math.min(left, s.len)
+                if (s.pt) {
+                    const p = s.pt(d)
+                    ctx.lineTo(p[0], p[1])
+                } else {
+                    const a0 = s.arc[2]
+                    ctx.arc(s.arc[0], s.arc[1], r, a0, a0 + d / r, false)
+                }
+                left -= d
+            }
+            ctx.stroke()
+        }
     }
     VolumeAlert {
         id: volume
