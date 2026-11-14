@@ -17,7 +17,7 @@ MenuPage {
     title: "Select a window"
     glyph: "\uf2d0"
     maxRows: 4
-    tileY: 108
+    tileY: 70
     contentWidth: tiles ? 380 : 620
     contentHeight: {
         if (tiles)
@@ -44,7 +44,7 @@ MenuPage {
     ]
     Row {
         id: modeRow
-        y: 50
+        y: 12
         anchors.horizontalCenter: parent.horizontalCenter
         spacing: 12
         visible: !page.inWindowList

@@ -138,6 +138,8 @@ PanelWindow {
             Loader {
                 id: menuLoader
                 anchors.fill: parent
+                // Above the (mostly invisible) header row so pages can use the top band for clicks.
+                z: 1
                 sourceComponent: win.pages[OverlayController.launcherMode] || appsPage
                 onLoaded: {
                     item.query = Qt.binding(() => field.text)
