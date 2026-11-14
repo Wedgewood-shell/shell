@@ -252,6 +252,12 @@ ShellRoot {
                     test.check(menu.page.results.length === 3 && menu.page.results[2].scope === "window", "record tiles")
                     test.check(menu.page.handleKey(Qt.Key_Tab) && CaptureService.captureKind === "screenshot", "tab switches back to snap")
                     test.check(menu.page.results.length === 3, "snap tiles after toggle")
+                    menu.page.currentIndex = 1
+                    menu.page.handleKey(Qt.Key_Tab)
+                    test.check(menu.page.currentIndex === 1, "tab keeps selection on the highlighted tile")
+                    menu.page.handleKey(Qt.Key_Tab)
+                    test.check(menu.page.currentIndex === 1, "tab back keeps selection")
+                    menu.page.currentIndex = 0
                     menu.page.activate(menu.page.results.find(i => i.scope === "window"))
                     test.check(CaptureService.captureStage === "window", "window tile opens window list")
                     test.check(menu.page.results.length === 1, "capture window list populated")

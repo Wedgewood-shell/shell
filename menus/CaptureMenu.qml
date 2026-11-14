@@ -126,10 +126,10 @@ MenuPage {
             page.refresh()
         }
         function onCaptureKindChanged() {
-            page.refresh()
+            page.refreshKeepingSelection()
         }
         function onRecordingChanged() {
-            page.refresh()
+            page.refreshKeepingSelection()
         }
     }
 
@@ -137,7 +137,7 @@ MenuPage {
         target: NiriService
         function onWindowDataChanged() {
             if (page.inWindowList)
-                page.refresh()
+                page.refreshKeepingSelection()
         }
     }
 
@@ -163,6 +163,14 @@ MenuPage {
             CaptureService.captureStage = "scope"
             page.resetMode()
         }
+    }
+
+    // Rebuild the list but keep the highlighted item (e.g. Tab must not move the
+    // cursor back to the first tile). Clamped in case the new list is shorter.
+    function refreshKeepingSelection() {
+        const keep = page.currentIndex
+        page.refresh()
+        page.currentIndex = Math.max(0, Math.min(keep, page.results.length - 1))
     }
 
     // Start in Record while a recording is running, so its Stop tile is ready.
