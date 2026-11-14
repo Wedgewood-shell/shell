@@ -1,6 +1,6 @@
 import QtQuick
 import Quickshell
-import Quickshell.Widgets
+import QtQuick.Effects
 import ".."
 
 MenuPage {
@@ -22,7 +22,21 @@ MenuPage {
             return 172
         if (page.results.length === 0)
             return 110
-        return 280 + Math.min(page.results.length, maxRows) * 46
+        return 56 + Math.min(page.results.length, maxRows) * 46 + 6
+    }
+
+    // Live preview below the pill, sized to the window's aspect ratio.
+    readonly property bool showPreview: CaptureService.captureStage === "window" && page.results.length > 0
+    readonly property size previewMax: Qt.size(620, 360)
+    detailHeight: previewMax.height
+    // Kept through the window stage and briefly after leaving it, so the preview
+    // fades out instead of popping (also keeps the surface size steady meanwhile).
+    property bool keepPreview: CaptureService.captureStage === "window"
+    detail: keepPreview ? previewComponent : null
+    Timer {
+        id: previewLinger
+        interval: 250
+        onTriggered: page.keepPreview = CaptureService.captureStage === "window"
     }
 
     readonly property var currentWin: (page.results && page.results.length > 0 && page.currentIndex >= 0 && page.currentIndex < page.results.length)
@@ -32,6 +46,12 @@ MenuPage {
     Connections {
         target: CaptureService
         function onCaptureStageChanged() {
+            if (CaptureService.captureStage === "window") {
+                previewLinger.stop()
+                page.keepPreview = true
+            } else {
+                previewLinger.restart()
+            }
             page.clearQuery()
             page.refresh()
         }
@@ -51,10 +71,21 @@ MenuPage {
     Connections {
         target: OverlayController
         function onLauncherOpenChanged() {
-            if (!OverlayController.launcherOpen) {
-                CaptureService.captureStage = "kind"
-                CaptureService.captureKind = ""
-            }
+            if (!OverlayController.launcherOpen)
+                resetAfterClose.restart()
+            else
+                resetAfterClose.stop()
+        }
+    }
+
+    // Reset once the collapse has finished, so neither the list nor the preview
+    // changes while they are fading out.
+    Timer {
+        id: resetAfterClose
+        interval: 450
+        onTriggered: if (!OverlayController.launcherOpen) {
+            CaptureService.captureStage = "kind"
+            CaptureService.captureKind = ""
         }
     }
 
@@ -184,13 +215,11 @@ MenuPage {
             }
             OverlayController.launcherOpen = false
             CaptureService.runCapture(CaptureService.captureKind, item.scope)
-            CaptureService.captureStage = "kind"
             return
         }
         if (item.id !== undefined) {
             OverlayController.launcherOpen = false
             CaptureService.runCapture("screenshot", "window", item.id)
-            CaptureService.captureStage = "kind"
             return
         }
     }
@@ -223,118 +252,70 @@ MenuPage {
         font.pixelSize: 14
     }
 
-    Item {
-        id: previewCard
-        visible: CaptureService.captureStage === "window" && page.results.length > 0
-        x: 14
-        y: page.listY + Math.min(page.results.length, page.maxRows) * 46 + 10
-        width: page.contentWidth - 28
-        height: 200
-
-        Rectangle {
-            anchors.fill: parent
-            radius: 12
-            color: "#181d2e"
-            border.width: 1
-            border.color: previewMouse.containsMouse ? Theme.highlight : "#28334f"
-            clip: true
-
-            Behavior on border.color {
-                ColorAnimation {
-                    duration: 150
+    Component {
+        id: previewComponent
+        // Rounded clip for the stream. Fades with the stream and with the menu.
+        Item {
+            id: preview
+            readonly property var stream: live.item
+            readonly property bool shown: stream !== null && stream.ready && OverlayController.launcherOpen && page.showPreview
+            readonly property size source: stream && stream.sourceSize.width > 0 ? stream.sourceSize : Qt.size(16, 9)
+            readonly property real fit: Math.min(page.previewMax.width / source.width, page.previewMax.height / source.height)
+            width: Math.round(source.width * fit)
+            height: Math.round(source.height * fit)
+            opacity: shown ? 1 : 0
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 180
+                    easing.type: Easing.OutCubic
                 }
             }
-
-            Column {
-                anchors.centerIn: parent
-                spacing: 8
-                visible: !live.ready
-                IconImage {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    implicitSize: 36
-                    source: page.currentWin ? Quickshell.iconPath(page.iconFor(page.currentWin.app_id), "application-x-executable") : ""
-                }
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: page.currentWin ? page.currentWin.name : ""
-                    color: Theme.muted
-                    font.family: Theme.fontFamily
-                    font.pixelSize: 12
-                    elide: Text.ElideRight
-                    width: previewCard.width - 40
-                    horizontalAlignment: Text.AlignHCenter
-                }
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: live.status === Loader.Error ? "Live preview unavailable (build native/)" : live.item && live.item.error ? live.item.error : "Connecting to window…"
-                    color: "#5a6585"
-                    font.family: Theme.fontFamily
-                    font.pixelSize: 11
-                }
-            }
-
-            // One live PipeWire stream for the highlighted window only. It is
-            // retargeted on selection change and stopped when the picker closes.
-            Loader {
-                id: live
+            Item {
+                id: frame
                 anchors.fill: parent
-                anchors.margins: 8
-                active: previewCard.visible
-                source: Quickshell.shellDir + "/native/build/LiveWindow.qml"
-                onLoaded: item.active = Qt.binding(() => OverlayController.launcherOpen && previewCard.visible)
-                Binding {
-                    target: live.item
-                    property: "windowId"
-                    value: page.currentWindowId
-                    when: live.item !== null
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    maskEnabled: true
+                    maskThresholdMin: 0.5
+                    maskSpreadAtMin: 1.0
+                    maskSource: roundMask
                 }
-                readonly property bool ready: item !== null && item.ready
-                opacity: ready ? 1 : 0
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: 150
+                Rectangle {
+                    anchors.fill: parent
+                    color: "#0b0d14"
+                }
+                // One PipeWire stream for the highlighted window; retargeted on
+                // selection change, stopped when the picker closes.
+                Loader {
+                    id: live
+                    anchors.fill: parent
+                    source: Quickshell.shellDir + "/native/build/LiveWindow.qml"
+                    onLoaded: item.active = Qt.binding(() => OverlayController.launcherOpen && page.showPreview)
+                    Binding {
+                        target: live.item
+                        property: "windowId"
+                        value: page.currentWindowId
+                        when: live.item !== null
                     }
                 }
             }
-
             Rectangle {
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                anchors.margins: 10
-                height: 22
-                width: hintText.implicitWidth + 16
-                radius: 11
-                color: previewMouse.containsMouse ? "#2f3d66" : "#20283f"
-                border.width: 1
-                border.color: previewMouse.containsMouse ? Theme.highlight : "#354266"
-                visible: live.ready
-
-                Row {
-                    id: hintText
-                    anchors.centerIn: parent
-                    spacing: 6
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "\uf030"
-                        color: Theme.highlight
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 11
-                    }
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "Click or Enter to capture"
-                        color: Theme.text
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 11
-                        font.weight: Font.DemiBold
-                    }
-                }
-            }
-
-            MouseArea {
-                id: previewMouse
+                id: roundMask
                 anchors.fill: parent
-                hoverEnabled: true
+                radius: Theme.openRadius
+                visible: false
+                layer.enabled: true
+            }
+            Rectangle {
+                anchors.fill: parent
+                radius: Theme.openRadius
+                color: "transparent"
+                border.width: 1
+                border.color: Theme.border
+            }
+            MouseArea {
+                anchors.fill: parent
+                enabled: preview.shown
                 cursorShape: Qt.PointingHandCursor
                 onClicked: if (page.currentWin)
                     page.activate(page.currentWin)

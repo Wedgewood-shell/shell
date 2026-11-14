@@ -107,12 +107,11 @@ void WindowStream::stop() {
     m_session.clear();
     m_stream.clear();
     {
+        // Keep the last frame: QML fades the preview out on `ready` going false.
         QMutexLocker lock(&m_frameMutex);
-        m_frame = {};
         m_deliveryPending = false;
     }
     setReady(false);
-    update();
 }
 
 void WindowStream::fail(const QString &message) {
@@ -257,6 +256,15 @@ GstFlowReturn WindowStream::newSample(GstAppSink *sink, gpointer data) {
                         self->m_deliveryPending = false;
                     }
                     self->m_timeout.stop();
+                    QSize size;
+                    {
+                        QMutexLocker lock(&self->m_frameMutex);
+                        size = self->m_frame.size();
+                    }
+                    if (size != self->m_sourceSize) {
+                        self->m_sourceSize = size;
+                        emit self->sourceSizeChanged();
+                    }
                     self->setReady(true);
                     ++self->m_frameCount;
                     emit self->frameCountChanged();

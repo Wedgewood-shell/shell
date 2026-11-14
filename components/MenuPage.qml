@@ -15,6 +15,10 @@ Item {
     property int maxRows: 7
     property real listY: 50
     property var results: []
+    // Optional surface shown below the menu pill (not clipped by it), e.g. a preview.
+    // `detailHeight` reserves room for it in the layer surface.
+    property Component detail: null
+    property real detailHeight: 0
     property alias currentIndex: list.currentIndex
     readonly property real tilesWidth: results.length * 104 + Math.max(0, results.length - 1) * 12
     property real contentWidth: tiles ? Math.max(340, tilesWidth + 44) : 620

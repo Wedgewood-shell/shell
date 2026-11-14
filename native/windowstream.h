@@ -16,6 +16,8 @@ class WindowStream : public QQuickItem {
     Q_PROPERTY(bool ready READ ready NOTIFY readyChanged)
     Q_PROPERTY(QString error READ error NOTIFY errorChanged)
     Q_PROPERTY(quint64 frameCount READ frameCount NOTIFY frameCountChanged)
+    // Pixel size of the latest frame; kept after stopping so a fade-out still has content.
+    Q_PROPERTY(QSize sourceSize READ sourceSize NOTIFY sourceSizeChanged)
 
 public:
     explicit WindowStream(QQuickItem *parent = nullptr);
@@ -25,6 +27,7 @@ public:
     bool ready() const { return m_ready; }
     QString error() const { return m_error; }
     quint64 frameCount() const { return m_frameCount; }
+    QSize sourceSize() const { return m_sourceSize; }
     void setWindowId(int id);
     void setActive(bool active);
 
@@ -34,6 +37,7 @@ signals:
     void readyChanged();
     void errorChanged();
     void frameCountChanged();
+    void sourceSizeChanged();
 
 protected:
     QSGNode *updatePaintNode(QSGNode *old, UpdatePaintNodeData *) override;
@@ -66,5 +70,6 @@ private:
     QTimer m_timeout;
     QMutex m_frameMutex;
     QImage m_frame;
+    QSize m_sourceSize;
     bool m_deliveryPending = false;
 };

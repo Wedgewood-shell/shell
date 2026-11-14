@@ -117,7 +117,9 @@ horizontal action tiles.
 
 1. Create `menus/ExampleMenu.qml` extending `MenuPage`.
 2. Set `title`, `glyph`, and optionally `tiles`, `contentWidth`, `contentHeight`,
-   `inputReadOnly`, `password`, or `showHeader`.
+   `inputReadOnly`, `password`, or `showHeader`. Set `detail` (a Component) and
+   `detailHeight` for a separate surface shown below the pill, like the capture
+   menu's live preview.
 3. Override `filter(query)` and `activate(item)`. Override `handleKey(key)` for
    submenu navigation; return `true` when handled. `clearQuery()` asks the frame
    to clear and focus the search field. Use a service for external commands.

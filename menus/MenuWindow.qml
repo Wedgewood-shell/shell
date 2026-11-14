@@ -25,13 +25,19 @@ PanelWindow {
     anchors.top: true
     margins.top: Theme.topMargin
     implicitWidth: 720
-    implicitHeight: Math.max(640, layoutHeight + 64)
+    implicitHeight: Math.max(640, layoutHeight + 64 + detailSpace)
+    // Grows only while a page has a detail surface; then stays put while it is shown.
+    readonly property real detailSpace: page && page.detail ? page.detailHeight + detailGap : 0
+    readonly property int detailGap: 12
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "island-launcher"
     WlrLayershell.keyboardFocus: open ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     mask: Region {
         item: win.open ? pill : null
+        Region {
+            item: win.open && detailLoader.item && detailLoader.item.opacity > 0 ? detailLoader.item : null
+        }
     }
     property real layoutWidth: 620
     property real layoutHeight: Theme.barHeight
@@ -202,6 +208,14 @@ PanelWindow {
                 }
             }
         }
+    }
+    Loader {
+        id: detailLoader
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: pill.bottom
+        anchors.topMargin: win.detailGap
+        active: win.page !== null && win.page.detail !== null
+        sourceComponent: win.page ? win.page.detail : null
     }
     Component {
         id: appsPage
