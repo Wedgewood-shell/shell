@@ -23,6 +23,13 @@ Item {
             easing.type: Easing.OutCubic
         }
     }
+    // Click the address to edit it (same as Ctrl+L).
+    MouseArea {
+        anchors.fill: parent
+        enabled: view.active && !OverlayController.launcherOpen
+        cursorShape: Qt.PointingHandCursor
+        onClicked: OverlayController.openLauncher("address")
+    }
     IconLabel {
         id: lead
         anchors.verticalCenter: parent.verticalCenter
