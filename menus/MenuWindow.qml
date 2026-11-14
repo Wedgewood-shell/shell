@@ -33,7 +33,21 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "island-launcher"
-    WlrLayershell.keyboardFocus: open ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    // The Helium address editor only asks for the keyboard (niri gives it when
+    // the window maps), so a click on another window or a niri focus action
+    // takes it away, and the editor then closes (see addressHadKeyboard).
+    // The other menus keep it until they close.
+    WlrLayershell.keyboardFocus: !open ? WlrKeyboardFocus.None : OverlayController.launcherMode === "address" ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.Exclusive
+    readonly property bool keyboardActive: pill.Window.active
+    property bool addressHadKeyboard: false
+    onKeyboardActiveChanged: {
+        if (!open || OverlayController.launcherMode !== "address")
+            return
+        if (keyboardActive)
+            addressHadKeyboard = true
+        else if (addressHadKeyboard)
+            OverlayController.launcherOpen = false
+    }
     mask: Region {
         item: win.open ? pill : null
         Region {
@@ -88,6 +102,7 @@ PanelWindow {
     onPageChanged: if (open)
         prepare()
     onOpenChanged: {
+        addressHadKeyboard = open && keyboardActive
         if (open)
             prepare()
     }
