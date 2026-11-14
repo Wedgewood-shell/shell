@@ -13,6 +13,8 @@ Item {
     // Text the input starts with (selected) when the page opens.
     property string initialText: ""
     property bool showHeader: true
+    // Rule under the input row.
+    property bool showDivider: true
     property bool showResults: true
     property int maxRows: 7
     property real listY: 50

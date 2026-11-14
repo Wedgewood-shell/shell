@@ -7,6 +7,10 @@ MenuPage {
     id: page
     title: "Search or enter address"
     glyph: Theme.cp(0xF059F)
+    showDivider: results.length > 0
+    // Same footprint as the closed island until there are suggestions to show.
+    contentWidth: Theme.islandHeliumWidth
+    contentHeight: results.length ? 56 + Math.min(results.length, maxRows) * 46 + 6 : Theme.barHeight
     initialText: HeliumService.url
     property string lastQuery: "\u0000"
     readonly property var glyphs: ({

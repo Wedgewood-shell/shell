@@ -172,7 +172,7 @@ PanelWindow {
                 width: parent.width - 28
                 height: 1
                 color: "#2b3350"
-                visible: (win.page && win.page.showHeader)
+                visible: (win.page && win.page.showHeader && win.page.showDivider)
             }
             Row {
                 x: 18
