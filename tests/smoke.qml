@@ -247,9 +247,9 @@ ShellRoot {
                     test.check(menu.page.filter("kitty").length === 1, "window app search")
                     test.select("capture")
                     test.check(CaptureService.captureStage === "scope" && CaptureService.captureKind === "screenshot", "capture starts in snap mode")
-                    test.check(menu.page.results.length === 3 && menu.page.results[2].scope === "window", "capture scope tiles")
+                    test.check(menu.page.results.length === 3 && menu.page.results[0].scope === "area" && menu.page.results[1].scope === "window" && menu.page.results[2].scope === "screen", "capture tiles ordered area, window, screen")
                     test.check(menu.page.handleKey(Qt.Key_Tab) && CaptureService.captureKind === "video", "tab switches to record")
-                    test.check(menu.page.results.length === 3 && menu.page.results[2].scope === "window", "record tiles")
+                    test.check(menu.page.results.length === 3 && menu.page.results[1].scope === "window", "record tiles")
                     test.check(menu.page.handleKey(Qt.Key_Tab) && CaptureService.captureKind === "screenshot", "tab switches back to snap")
                     test.check(menu.page.results.length === 3, "snap tiles after toggle")
                     menu.page.currentIndex = 1
@@ -263,6 +263,15 @@ ShellRoot {
                     test.check(menu.page.results.length === 1, "capture window list populated")
                     test.check(menu.page.handleKey(Qt.Key_Tab) === false, "tab ignored in window list")
                     test.check(menu.page.handleKey(Qt.Key_Escape) && CaptureService.captureStage === "scope", "capture window back to tiles")
+                    menu.page.activate(menu.page.results.find(i => i.scope === "screen"))
+                    if (Quickshell.screens.length > 1) {
+                        test.check(CaptureService.captureStage === "screen", "screen tile opens display list with several displays")
+                        test.check(menu.page.results.length === Quickshell.screens.length, "display list has one row per screen")
+                        test.check(menu.page.results.some(i => i.output === menu.page.results[menu.page.currentIndex].output), "display list preselects a screen")
+                        test.check(menu.page.handleKey(Qt.Key_Escape) && CaptureService.captureStage === "scope", "display list back to tiles")
+                    } else {
+                        test.check(CaptureService.captureStage === "scope", "single display captures without a list")
+                    }
                     test.check(!menu.page.handleKey(Qt.Key_Escape), "escape in tiles closes the menu")
                     test.select("session")
                     menu.page.activate(menu.page.results.find(i => i.act === "reboot"))

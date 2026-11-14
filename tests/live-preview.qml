@@ -16,7 +16,8 @@ ShellRoot {
             id: stream
             anchors.fill: parent
             windowId: Number(Quickshell.env("CAPTURE_TEST_WINDOW")) || -1
-            active: windowId > 0
+            output: Quickshell.env("CAPTURE_TEST_OUTPUT") || ""
+            active: windowId > 0 || output !== ""
             onErrorChanged: if (error) console.error("FAIL: " + error)
         }
     }

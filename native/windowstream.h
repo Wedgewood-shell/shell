@@ -12,6 +12,8 @@
 class WindowStream : public QQuickItem {
     Q_OBJECT
     Q_PROPERTY(int windowId READ windowId WRITE setWindowId NOTIFY windowIdChanged)
+    // Connector name (e.g. "DP-1"). Used when windowId is unset, to stream a whole display.
+    Q_PROPERTY(QString output READ output WRITE setOutput NOTIFY outputChanged)
     Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
     Q_PROPERTY(bool ready READ ready NOTIFY readyChanged)
     Q_PROPERTY(QString error READ error NOTIFY errorChanged)
@@ -23,6 +25,8 @@ public:
     explicit WindowStream(QQuickItem *parent = nullptr);
     ~WindowStream() override;
     int windowId() const { return m_windowId; }
+    QString output() const { return m_output; }
+    void setOutput(const QString &name);
     bool active() const { return m_active; }
     bool ready() const { return m_ready; }
     QString error() const { return m_error; }
@@ -33,6 +37,7 @@ public:
 
 signals:
     void windowIdChanged();
+    void outputChanged();
     void activeChanged();
     void readyChanged();
     void errorChanged();
@@ -57,6 +62,7 @@ private:
     static GstFlowReturn newSample(GstAppSink *sink, gpointer data);
 
     int m_windowId = -1;
+    QString m_output;
     bool m_active = false;
     bool m_ready = false;
     QString m_error;

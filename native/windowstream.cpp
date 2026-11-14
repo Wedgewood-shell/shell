@@ -58,6 +58,14 @@ void WindowStream::setWindowId(int id) {
     restart();
 }
 
+void WindowStream::setOutput(const QString &name) {
+    if (m_output == name)
+        return;
+    m_output = name;
+    emit outputChanged();
+    restart();
+}
+
 void WindowStream::setActive(bool active) {
     if (m_active == active)
         return;
@@ -83,7 +91,7 @@ void WindowStream::setError(const QString &message) {
 void WindowStream::restart() {
     stop();
     setError({});
-    if (m_active && m_windowId > 0)
+    if (m_active && (m_windowId > 0 || !m_output.isEmpty()))
         m_debounce.start();
 }
 
@@ -120,7 +128,7 @@ void WindowStream::fail(const QString &message) {
 }
 
 void WindowStream::start() {
-    if (!m_active || m_windowId <= 0)
+    if (!m_active || (m_windowId <= 0 && m_output.isEmpty()))
         return;
     const auto generation = m_generation.load();
     auto request = method(rootPath, service, "CreateSession");
@@ -143,9 +151,16 @@ void WindowStream::start() {
         self->m_session = reply.value().path();
         auto bus = QDBusConnection::sessionBus();
         bus.connect(service, self->m_session, sessionInterface, "Closed", self, SLOT(sessionClosed()));
-        auto record = method(self->m_session, sessionInterface, "RecordWindow");
-        record << QVariantMap{{"window-id", QVariant::fromValue<qulonglong>(self->m_windowId)},
-                              {"cursor-mode", uint(0)}};
+        // Window streams by id; otherwise the whole display by connector name.
+        const bool window = self->m_windowId > 0;
+        auto record = window ? method(self->m_session, sessionInterface, "RecordWindow")
+                             : method(self->m_session, sessionInterface, "RecordMonitor");
+        if (window) {
+            record << QVariantMap{{"window-id", QVariant::fromValue<qulonglong>(self->m_windowId)},
+                                  {"cursor-mode", uint(0)}};
+        } else {
+            record << self->m_output << QVariantMap{{"cursor-mode", uint(0)}};
+        }
         auto *windowCall = new QDBusPendingCallWatcher(bus.asyncCall(record, 3000), self);
         connect(windowCall, &QDBusPendingCallWatcher::finished, self, [self, generation, windowCall] {
             QDBusPendingReply<QDBusObjectPath> result = *windowCall;
@@ -183,7 +198,7 @@ void WindowStream::nodeAdded(uint nodeId) {
     // The appsink holds at most one frame; delivery to Qt is coalesced too.
     const auto pipeline = QStringLiteral(
         "pipewiresrc path=%1 do-timestamp=true ! "
-        "video/x-raw(memory:DMABuf),format=DMA_DRM,drm-format=AR24 ! "
+        "video/x-raw(memory:DMABuf),format=DMA_DRM,drm-format={AR24,XR24} ! "  // windows: AR24, displays: XR24
         "appsink name=preview max-buffers=1 drop=true sync=false").arg(nodeId);
     GError *error = nullptr;
     m_pipeline = gst_parse_launch(pipeline.toUtf8().constData(), &error);
@@ -240,11 +255,25 @@ GstFlowReturn WindowStream::newSample(GstAppSink *sink, gpointer data) {
         }
         struct dma_buf_sync sync{DMA_BUF_SYNC_START | DMA_BUF_SYNC_READ};
         ioctl(fd, DMA_BUF_IOCTL_SYNC, &sync);
+        // Windows carry alpha (AR24); displays are opaque (XR24) and must not be read as transparent.
+        const bool hasAlpha = GST_VIDEO_INFO_HAS_ALPHA(&info);
+        const auto format = hasAlpha ? QImage::Format_ARGB32_Premultiplied : QImage::Format_RGB32;
         QImage image(static_cast<const uchar *>(mapping) + offset,
-                     info.width, info.height, stride, QImage::Format_ARGB32_Premultiplied);
+                     info.width, info.height, stride, format);
+        QImage copy = image.copy();
+        if (!hasAlpha) {
+            // XR24's padding byte is undefined (niri sends 0x00), but Qt treats RGB32 as
+            // 0xffRRGGBB. Left as-is, it is drawn as zero alpha and the overlay turns
+            // see-through. Force it opaque.
+            for (int y = 0; y < copy.height(); ++y) {
+                auto *row = reinterpret_cast<quint32 *>(copy.scanLine(y));
+                for (int x = 0; x < copy.width(); ++x)
+                    row[x] |= 0xff000000u;
+            }
+        }
         {
             QMutexLocker lock(&self->m_frameMutex);
-            self->m_frame = image.copy();
+            self->m_frame = std::move(copy);
             if (!self->m_deliveryPending) {
                 self->m_deliveryPending = true;
                 const auto generation = self->m_generation.load();

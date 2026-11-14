@@ -4,18 +4,21 @@ import QtQuick.Effects
 import ".."
 
 // Single-level capture menu. The top row picks the mode (Snap / Record, toggled
-// with Tab); the tiles below pick what to capture. "Window" in photo mode opens
-// a searchable window list with a live preview.
+// with Tab); the tiles below pick what to capture. Window and Screen (when there
+// are several displays) open a searchable list with a live preview.
 MenuPage {
     id: page
     readonly property bool inWindowList: CaptureService.captureStage === "window"
+    readonly property bool inScreenList: CaptureService.captureStage === "screen"
+    readonly property bool inList: inWindowList || inScreenList
     readonly property bool videoMode: CaptureService.captureKind === "video"
     readonly property bool stopping: videoMode && CaptureService.recording
+    readonly property bool multiScreen: Quickshell.screens.length > 1
 
-    tiles: !inWindowList
-    showHeader: inWindowList
-    title: "Select a window"
-    glyph: "\uf2d0"
+    tiles: !inList
+    showHeader: inList
+    title: inScreenList ? "Select a screen" : "Select a window"
+    glyph: inScreenList ? "\uf108" : "\uf2d0"
     maxRows: 4
     tileY: 70
     contentWidth: tiles ? 380 : 620
@@ -47,7 +50,7 @@ MenuPage {
         y: 12
         anchors.horizontalCenter: parent.horizontalCenter
         spacing: 12
-        visible: !page.inWindowList
+        visible: !page.inList
         Repeater {
             model: page.modes
             delegate: Rectangle {
@@ -95,28 +98,30 @@ MenuPage {
         }
     }
 
-    // Live preview below the pill, sized to the window's aspect ratio.
-    readonly property bool showPreview: inWindowList && page.results.length > 0
+    // Live preview below the pill, sized to the source's aspect ratio.
+    readonly property bool showPreview: inList && page.results.length > 0
     readonly property size previewMax: Qt.size(620, 360)
     detailHeight: previewMax.height
-    // Kept through the window list and briefly after leaving it, so the preview
-    // fades out instead of popping (also keeps the surface size steady meanwhile).
-    property bool keepPreview: inWindowList
+    // Kept through the list and briefly after leaving it, so the preview fades out
+    // instead of popping (also keeps the surface size steady meanwhile).
+    property bool keepPreview: inList
     detail: keepPreview ? previewComponent : null
     Timer {
         id: previewLinger
         interval: 250
-        onTriggered: page.keepPreview = page.inWindowList
+        onTriggered: page.keepPreview = page.inList
     }
 
     readonly property var currentWin: (page.results && page.results.length > 0 && page.currentIndex >= 0 && page.currentIndex < page.results.length)
                                       ? page.results[page.currentIndex] : null
-    readonly property int currentWindowId: currentWin && currentWin.id !== undefined ? currentWin.id : -1
+    // What the preview stream shows: one window, or one display.
+    readonly property int currentWindowId: inWindowList && currentWin && currentWin.id !== undefined ? currentWin.id : -1
+    readonly property string currentOutput: inScreenList && currentWin && currentWin.output !== undefined ? currentWin.output : ""
 
     Connections {
         target: CaptureService
         function onCaptureStageChanged() {
-            if (page.inWindowList) {
+            if (page.inList) {
                 previewLinger.stop()
                 page.keepPreview = true
             } else {
@@ -146,7 +151,7 @@ MenuPage {
         function onLauncherOpenChanged() {
             if (OverlayController.launcherOpen) {
                 resetAfterClose.stop()
-                if (!page.inWindowList)
+                if (!page.inList)
                     page.resetMode()
             } else {
                 resetAfterClose.restart()
@@ -184,7 +189,9 @@ MenuPage {
     }
 
     function filter(q) {
-        if (!inWindowList) {
+        if (inScreenList)
+            return screenItems()
+        if (!inList) {
             if (stopping)
                 return [
                             {
@@ -195,13 +202,8 @@ MenuPage {
                                 act: "stop"
                             }
                         ]
+            // Order: area, window, screen.
             return [
-                        {
-                            name: "Entire screen",
-                            label: "Screen",
-                            glyph: "\uf108",
-                            scope: "screen"
-                        },
                         {
                             name: "Select an area",
                             label: "Area",
@@ -213,6 +215,12 @@ MenuPage {
                             label: "Window",
                             glyph: "\uf2d0",
                             scope: "window"
+                        },
+                        {
+                            name: "Entire screen",
+                            label: "Screen",
+                            glyph: "\uf108",
+                            scope: "screen"
                         }
                     ]
         }
@@ -252,7 +260,24 @@ MenuPage {
         return items
     }
 
+    // One row per connected display, in Quickshell's order. The focused one is preselected.
+    function screenItems() {
+        const focused = NiriService.workspaces[NiriService.focusedWs]
+        const current = focused ? focused.output : ""
+        return Quickshell.screens.map(s => ({
+                                              name: s.model ? s.name + "  ·  " + s.model : s.name,
+                                              sub: s.width + "×" + s.height + (s.name === current ? "  ·  current" : ""),
+                                              glyph: "\uf108",
+                                              output: s.name
+                                          }))
+    }
+
     function initialIndex() {
+        if (inScreenList) {
+            const focused = NiriService.workspaces[NiriService.focusedWs]
+            const i = focused ? results.findIndex(r => r.output === focused.output) : -1
+            return Math.max(0, i)
+        }
         return 0
     }
 
@@ -264,13 +289,22 @@ MenuPage {
             CaptureService.runCapture("stop", "")
             return
         }
+        if (item.output !== undefined) {
+            OverlayController.launcherOpen = false
+            CaptureService.runCapture(CaptureService.captureKind, "screen", item.output)
+            return
+        }
+        if (item.scope === "screen" && page.multiScreen) {
+            CaptureService.captureStage = "screen"
+            return
+        }
         if (item.scope === "window" && CaptureService.captureKind === "screenshot") {
             CaptureService.captureStage = "window"
             return
         }
         if (item.scope) {
             OverlayController.launcherOpen = false
-            CaptureService.runCapture(CaptureService.captureKind, item.scope)
+            CaptureService.runCapture(CaptureService.captureKind, item.scope, "")
             return
         }
         if (item.id !== undefined) {
@@ -280,7 +314,7 @@ MenuPage {
     }
 
     function handleKey(key) {
-        if (inWindowList) {
+        if (inList) {
             if (key === Qt.Key_Escape || (key === Qt.Key_Backspace && query.length === 0)) {
                 CaptureService.captureStage = "scope"
                 return true
@@ -297,8 +331,8 @@ MenuPage {
     Text {
         anchors.horizontalCenter: parent.horizontalCenter
         y: 68
-        visible: page.inWindowList && page.results.length === 0
-        text: "No open windows match"
+        visible: page.inList && page.results.length === 0
+        text: "Nothing to show"
         color: Theme.muted
         font.family: Theme.fontFamily
         font.pixelSize: 14
@@ -336,8 +370,8 @@ MenuPage {
                     anchors.fill: parent
                     color: "#0b0d14"
                 }
-                // One PipeWire stream for the highlighted window; retargeted on
-                // selection change, stopped when the picker closes.
+                // One PipeWire stream for the highlighted window or display; retargeted
+                // on selection change, stopped when the picker closes.
                 Loader {
                     id: live
                     anchors.fill: parent
@@ -347,6 +381,12 @@ MenuPage {
                         target: live.item
                         property: "windowId"
                         value: page.currentWindowId
+                        when: live.item !== null
+                    }
+                    Binding {
+                        target: live.item
+                        property: "output"
+                        value: page.currentOutput
                         when: live.item !== null
                     }
                 }
