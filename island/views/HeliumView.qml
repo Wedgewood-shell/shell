@@ -42,17 +42,67 @@ Item {
         radius: 5
         color: "#ff5c5c"
     }
-    Text {
+    // Main domain in full colour; scheme, subdomains and path are dimmed.
+    readonly property string dim: "#8b94b0"
+    function esc(t) {
+        return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    }
+    function styled(u) {
+        const m = u.match(/^([a-z][a-z0-9+.-]*:\/\/)?([^\/?#:]*)(.*)$/i)
+        if (!m)
+            return esc(u)
+        const scheme = m[1] || "", host = m[2], rest = m[3]
+        const labels = host.split(".")
+        let keep = 1
+        if (labels.length > 1 && !/^[0-9.]+$/.test(host)) {
+            keep = 2
+            const sld = labels[labels.length - 2]
+            if (labels.length > 2 && labels[labels.length - 1].length === 2 && ["co", "com", "org", "net", "gov", "edu", "ac"].includes(sld))
+                keep = 3
+        }
+        const sub = labels.slice(0, Math.max(0, labels.length - keep)).join(".")
+        const main = labels.slice(Math.max(0, labels.length - keep)).join(".")
+        const d = t => t ? "<font color='" + view.dim + "'>" + esc(t) + "</font>" : ""
+        return d(scheme) + d(sub ? sub + "." : "") + esc(main) + d(rest)
+    }
+    Item {
+        id: urlBox
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: lead.right
         anchors.leftMargin: 10
         anchors.right: recDot.visible ? recDot.left : parent.right
         anchors.rightMargin: 18
-        elide: Text.ElideRight
-        text: view.url
-        color: Theme.text
-        font.family: Theme.fontFamily
-        font.pixelSize: 14
-        font.weight: Font.DemiBold
+        height: parent.height
+        clip: true
+        Text {
+            id: urlText
+            anchors.verticalCenter: parent.verticalCenter
+            textFormat: Text.RichText
+            wrapMode: Text.NoWrap
+            text: view.styled(view.url)
+            color: Theme.text
+            font.family: Theme.fontFamily
+            font.pixelSize: 14
+            font.weight: Font.DemiBold
+        }
+        // Long addresses fade out instead of eliding.
+        Rectangle {
+            visible: urlText.implicitWidth > urlBox.width
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: 48
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop {
+                    position: 0
+                    color: "transparent"
+                }
+                GradientStop {
+                    position: 1
+                    color: "#1a1f2d"
+                }
+            }
+        }
     }
 }
