@@ -9,10 +9,13 @@ Canvas {
     property string kind: "wifi"
     property int level: 3
     property color color: Theme.foreground
-    implicitWidth: 21
-    implicitHeight: 16
+    // Draw size multiplier; rendering is vector-scaled, never bitmap-scaled.
+    property real s: 1
+    implicitWidth: 21 * s
+    implicitHeight: 16 * s
     width: implicitWidth
     height: implicitHeight
+    onSChanged: requestPaint()
     onKindChanged: requestPaint()
     onLevelChanged: requestPaint()
     onColorChanged: requestPaint()
@@ -42,6 +45,7 @@ Canvas {
         const ctx = getContext("2d")
         ctx.reset()
         ctx.clearRect(0, 0, width, height)
+        ctx.scale(s, s)
         if (kind === "eth") {
             ctx.strokeStyle = rgba(1)
             ctx.fillStyle = rgba(1)
@@ -69,7 +73,7 @@ Canvas {
             roundRect(ctx, 7.5, 6.5, 12.5, 8, 4)
             ctx.stroke()
         } else {
-            const cx = width / 2, cy = height - 0.5
+            const cx = 10.5, cy = 15.5
             const rr = [0, 3.9, 6.8, 9.5, 12.3, 15]
             const lit = kind === "none" ? 0 : level
             for (let i = 0; i < 3; i++) {
