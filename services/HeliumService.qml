@@ -5,7 +5,10 @@ import Quickshell.Io
 import ".."
 
 // Client for Helium's address-bar socket (see helium docs/address-bar-ipc.md).
-// Follows every window's page state and runs address-bar completions.
+// Follows every window's page state and runs address-bar completions. It also
+// stands in for the browser's own (auto-hidden) address bar: Helium asks it to
+// open on Ctrl+L or a new tab, and it says when its editor is open so Helium
+// keeps its native address bar hidden meanwhile.
 Singleton {
     id: root
 
@@ -26,6 +29,17 @@ Singleton {
     readonly property string title: current ? current.title || "" : ""
     readonly property bool loading: focusedWindow ? !!focusedWindow.loading : false
     readonly property real progress: focusedWindow ? focusedWindow.progress || 0 : 0
+
+    // The island's address editor is open (it has the keyboard, so the
+    // browser window lost focus to it).
+    readonly property bool editorOpen: OverlayController.launcherOpen && OverlayController.launcherMode === "address"
+    onEditorOpenChanged: sendEditorOpen()
+    function sendEditorOpen() {
+        send(Object.assign({
+                               "cmd": "address_bar_open",
+                               "open": editorOpen
+                           }, target()))
+    }
 
     // Completion results for the editor.
     property var suggestions: []
@@ -63,7 +77,18 @@ Singleton {
     }
 
     function handle(msg) {
-        if (msg.event === "state") {
+        if (msg.event === "focus_address_bar") {
+            // Helium would have focused its hidden address bar ("shortcut" for
+            // Ctrl+L, "new_tab"): open ours for that window instead.
+            const next = Object.assign({}, windows)
+            next[msg.window] = Object.assign({}, msg, {
+                                                 "event": "state"
+                                             })
+            windows = next
+            lastFocusedId = msg.window
+            if (!editorOpen)
+                OverlayController.openLauncher("address")
+        } else if (msg.event === "state") {
             const next = Object.assign({}, windows)
             next[msg.window] = msg
             windows = next
@@ -95,6 +120,11 @@ Singleton {
                 root.send({
                               "cmd": "subscribe"
                           })
+                root.send({
+                              "cmd": "register_address_bar"
+                          })
+                if (root.editorOpen)
+                    root.sendEditorOpen()
             } else {
                 root.windows = ({})
                 root.suggestions = []
