@@ -14,7 +14,8 @@ workspace HUD, IPC endpoints, and event wiring. It contains no feature logic.
 | `island/` | Compact island and individual animated alert views |
 | `menus/` | Feature-specific models, actions, navigation, and custom content |
 | `workspace/` | Workspace map and HUD presentation/animations |
-| `scripts/` | Network event helper and smoke-check runner |
+| `scripts/` | Network event helper, window screenshot flattening, native build and smoke-check runner |
+| `native/` | Live window-preview QML plugin (PipeWire) |
 | `tests/` | Isolated QML smoke-check harness |
 
 All exported QML types are registered explicitly in the root `qmldir`.
@@ -168,6 +169,25 @@ helpers in `~/.local/bin/`:
 - `display-layout`
 - `island-tabs-ctl`, plus the browser-tab exporter producing
   `$XDG_RUNTIME_DIR/island-tabs.json`
+
+The capture menu's live window preview is a small native QML plugin in `native/`
+(Qt 6 Quick/DBus, GStreamer app/video/allocators, PipeWire's GStreamer plugin).
+Build it once, and again after Qt upgrades:
+
+```sh
+~/.config/quickshell/scripts/build-native.sh
+```
+
+It asks Niri's `org.gnome.Mutter.ScreenCast` D-Bus API for one PipeWire stream of
+the highlighted window only; the stream is retargeted as the selection changes and
+stopped when the picker closes. No screenshots, files, or clipboard writes are
+involved. Without the build, the menu still works and shows an icon placeholder.
+`tests/live-preview.qml` is an opt-in check that opens one real stream:
+`CAPTURE_TEST_WINDOW=<niri window id> quickshell --path tests/live-preview.qml`.
+
+Window screenshots use `niri msg action screenshot-window` followed by
+`scripts/window-shot.py`, which composites the window geometry over black while
+leaving client-side shadows and rounded-corner cutouts untouched.
 
 Those external helpers are preserved. In particular, the existing Wi-Fi helper's
 saved-profile deletion behavior has not been changed by this structural refactor.

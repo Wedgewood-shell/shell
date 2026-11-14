@@ -29,24 +29,11 @@ MenuPage {
                                       ? page.results[page.currentIndex] : null
     readonly property int currentWindowId: currentWin && currentWin.id !== undefined ? currentWin.id : -1
 
-    onCurrentWindowIdChanged: {
-        if (CaptureService.captureStage === "window")
-            CaptureService.requestPreview(currentWindowId)
-    }
-
     Connections {
         target: CaptureService
         function onCaptureStageChanged() {
             page.clearQuery()
             page.refresh()
-            if (CaptureService.captureStage === "window") {
-                const ids = NiriService.windowData.map(w => w.id)
-                CaptureService.prewarmPreviews(ids)
-                if (page.currentWindowId > 0)
-                    CaptureService.requestPreview(page.currentWindowId)
-            } else {
-                CaptureService.requestPreview(-1)
-            }
         }
         function onRecordingChanged() {
             page.refresh()
@@ -67,7 +54,6 @@ MenuPage {
             if (!OverlayController.launcherOpen) {
                 CaptureService.captureStage = "kind"
                 CaptureService.captureKind = ""
-                CaptureService.requestPreview(-1)
             }
         }
     }
@@ -262,7 +248,7 @@ MenuPage {
             Column {
                 anchors.centerIn: parent
                 spacing: 8
-                visible: previewImg.status !== Image.Ready
+                visible: !live.ready
                 IconImage {
                     anchors.horizontalCenter: parent.horizontalCenter
                     implicitSize: 36
@@ -280,25 +266,30 @@ MenuPage {
                 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "Loading preview…"
+                    text: live.status === Loader.Error ? "Live preview unavailable (build native/)" : live.item && live.item.error ? live.item.error : "Connecting to window…"
                     color: "#5a6585"
                     font.family: Theme.fontFamily
                     font.pixelSize: 11
                 }
             }
 
-            Image {
-                id: previewImg
+            // One live PipeWire stream for the highlighted window only. It is
+            // retargeted on selection change and stopped when the picker closes.
+            Loader {
+                id: live
                 anchors.fill: parent
                 anchors.margins: 8
-                fillMode: Image.PreserveAspectFit
-                smooth: true
-                mipmap: true
-                asynchronous: true
-                cache: false
-                source: (CaptureService.previewWindowId === page.currentWindowId && CaptureService.previewPath !== "")
-                        ? ("file://" + CaptureService.previewPath) : ""
-                opacity: status === Image.Ready ? 1 : 0
+                active: previewCard.visible
+                source: Quickshell.shellDir + "/native/build/LiveWindow.qml"
+                onLoaded: item.active = Qt.binding(() => OverlayController.launcherOpen && previewCard.visible)
+                Binding {
+                    target: live.item
+                    property: "windowId"
+                    value: page.currentWindowId
+                    when: live.item !== null
+                }
+                readonly property bool ready: item !== null && item.ready
+                opacity: ready ? 1 : 0
                 Behavior on opacity {
                     NumberAnimation {
                         duration: 150
@@ -316,7 +307,7 @@ MenuPage {
                 color: previewMouse.containsMouse ? "#2f3d66" : "#20283f"
                 border.width: 1
                 border.color: previewMouse.containsMouse ? Theme.highlight : "#354266"
-                visible: previewImg.status === Image.Ready
+                visible: live.ready
 
                 Row {
                     id: hintText
