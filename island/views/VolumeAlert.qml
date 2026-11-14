@@ -20,12 +20,13 @@ Row {
         }
     }
 
-    Text {
+    VolumeIcon {
         anchors.verticalCenter: parent.verticalCenter
-        text: AudioService.volumeIcon()
-        color: "#c7d2ff"
-        font.family: Theme.fontFamily
-        font.pixelSize: 17
+        s: 1.15
+        kind: AudioService.outputKind
+        volume: AudioService.volume
+        muted: AudioService.muted
+        base: "#c7d2ff"
     }
     Rectangle {
         anchors.verticalCenter: parent.verticalCenter

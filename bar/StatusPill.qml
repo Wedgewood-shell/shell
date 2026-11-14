@@ -45,10 +45,12 @@ Pill {
                 color: Theme.warning
             }
         }
-        IconLabel {
+        VolumeIcon {
             anchors.verticalCenter: parent.verticalCenter
-            text: AudioService.volumeIcon()
-            color: AudioService.muted ? "#929aab" : Theme.foreground
+            kind: AudioService.outputKind
+            volume: AudioService.volume
+            muted: AudioService.muted
+            base: Theme.foreground
             MouseArea {
                 anchors.fill: parent
                 onClicked: pavu.running = true

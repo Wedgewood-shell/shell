@@ -17,6 +17,19 @@ Singleton {
     readonly property string sinkName: sink ? (sink.properties["device.profile.description"] || sink.nickname
                                                || sink.description || sink.name) : "No output"
 
+    // "speaker" | "earbuds" (Chu2) | "headphones" (wired / aux)
+    readonly property string outputKind: {
+        if (!sink)
+            return "speaker"
+        const p = sink.properties || ({})
+        const id = [p["node.name"], p["node.description"], sink.description, sink.nickname, p["device.form-factor"]].join(" ")
+        if (/chu2/i.test(id))
+            return "earbuds"
+        if (/headphone|headset|aux/i.test(id))
+            return "headphones"
+        return "speaker"
+    }
+
     function volumeIcon() {
         if (muted)
             return Theme.cp(0xF075F)

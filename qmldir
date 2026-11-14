@@ -19,6 +19,7 @@ singleton DisplayService services/DisplayService.qml
 singleton GestureService services/GestureService.qml
 IconLabel components/IconLabel.qml
 NetIcon components/NetIcon.qml
+VolumeIcon components/VolumeIcon.qml
 singleton Integration core/Integration.qml
 IpcEndpoints core/IpcEndpoints.qml
 Island island/Island.qml
