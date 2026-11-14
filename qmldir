@@ -20,6 +20,7 @@ singleton GestureService services/GestureService.qml
 IconLabel components/IconLabel.qml
 NetIcon components/NetIcon.qml
 VolumeIcon components/VolumeIcon.qml
+singleton PointerGate components/PointerGate.qml
 singleton Integration core/Integration.qml
 IpcEndpoints core/IpcEndpoints.qml
 Island island/Island.qml
@@ -27,6 +28,7 @@ singleton HeliumService services/HeliumService.qml
 singleton IslandController core/IslandController.qml
 WindowTitlePill bar/WindowTitlePill.qml
 AddressMenu menus/AddressMenu.qml
+HoverFocus components/HoverFocus.qml
 HeliumView island/views/HeliumView.qml
 MenuPage components/MenuPage.qml
 MenuWindow menus/MenuWindow.qml

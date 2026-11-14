@@ -136,10 +136,9 @@ ListView {
             font.family: Theme.fontFamily
             font.pixelSize: 15
         }
-        MouseArea {
+        HoverFocus {
             anchors.fill: parent
-            hoverEnabled: true
-            onPositionChanged: list.currentIndex = row.index
+            onMoved: list.currentIndex = row.index
             onClicked: list.activated(row.modelData)
         }
     }

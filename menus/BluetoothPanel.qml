@@ -414,10 +414,9 @@ Item {
                     font.family: Theme.fontFamily
                     font.pixelSize: 11
                 }
-                MouseArea {
+                HoverFocus {
                     anchors.fill: parent
-                    hoverEnabled: true
-                    onPositionChanged: {
+                    onMoved: {
                         panel.zone = "list"
                         panel.listIndex = row.index
                     }
