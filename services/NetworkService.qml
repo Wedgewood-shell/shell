@@ -33,13 +33,46 @@ Singleton {
             onStreamFinished: root.connectivity = text.trim() || "unknown"
         }
     }
+    // Refresh on NetworkManager activity instead of polling: `nmcli monitor`
+    // prints a line for connectivity, device and connection changes.
+    Process {
+        id: nmMonitor
+        running: true
+        command: ["nmcli", "monitor"]
+        stdout: SplitParser {
+            onRead: refreshSoon.restart()
+        }
+        onExited: nmRestart.start()
+    }
     Timer {
+        id: nmRestart
         interval: 5000
+        onTriggered: {
+            nmMonitor.running = true
+            refreshSoon.restart()
+        }
+    }
+    // Coalesce bursts of monitor output into one refresh.
+    Timer {
+        id: refreshSoon
+        interval: 400
+        onTriggered: root.refresh()
+    }
+    function refresh() {
+        if (!connPoll.running)
+            connPoll.running = true
+        if (!netPoll.running)
+            netPoll.running = true
+        else
+            refreshSoon.restart()
+    }
+    // Signal strength changes are not reported by `nmcli monitor`.
+    Timer {
+        interval: 30000
         running: true
         repeat: true
         triggeredOnStart: true
-        onTriggered: if (!connPoll.running)
-            connPoll.running = true
+        onTriggered: root.refresh()
     }
     readonly property string netIcon: netKind === "wifi" ? Theme.cp(0xF0928) : netKind === "eth" ? Theme.cp(0xF0200) : Theme.cp(0xF092D)
 
@@ -93,14 +126,6 @@ Singleton {
                 root.netKnown = true
             }
         }
-    }
-    Timer {
-        interval: 2000
-        running: true
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: if (!netPoll.running)
-            netPoll.running = true
     }
     function netGlyph(kind, signal) {
         if (kind === "hotspot")

@@ -44,6 +44,7 @@ singleton SessionService services/SessionService.qml
 singleton Settings core/Settings.qml
 StatusPill bar/StatusPill.qml
 singleton SystemService services/SystemService.qml
+singleton UeventService services/UeventService.qml
 singleton Theme core/Theme.qml
 Tray bar/Tray.qml
 VolumeAlert island/views/VolumeAlert.qml

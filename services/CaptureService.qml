@@ -19,8 +19,10 @@ Singleton {
             onStreamFinished: root.recSecs = parseInt(text.trim())
         }
     }
+    // Recordings start through runCapture (which polls soon via recFast), so
+    // only the elapsed-time display needs fast polling.
     Timer {
-        interval: 1000
+        interval: root.recording ? 1000 : 10000
         running: true
         repeat: true
         triggeredOnStart: true

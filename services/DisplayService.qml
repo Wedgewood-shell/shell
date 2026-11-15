@@ -44,13 +44,28 @@ Singleton {
             }
         }
     }
+    // Query niri when the Wayland output list changes; the slow poll catches
+    // outputs niri leaves disabled (no wl_output is advertised for them).
+    Connections {
+        target: Quickshell
+        function onScreensChanged() {
+            outSoon.restart()
+        }
+    }
     Timer {
-        interval: 2000
+        id: outSoon
+        interval: 300
+        onTriggered: if (!outPoll.running)
+                         outPoll.running = true
+                     else
+                         outSoon.restart()
+    }
+    Timer {
+        interval: 30000
         running: true
         repeat: true
         triggeredOnStart: true
-        onTriggered: if (!outPoll.running)
-                         outPoll.running = true
+        onTriggered: outSoon.restart()
     }
     function runDisplayLayout(args) {
         displayQuietUntil = Date.now() + 10000
