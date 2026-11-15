@@ -21,9 +21,10 @@ PanelWindow {
     readonly property int tileH: 22
     readonly property int tileGap: 6
     readonly property int pillGap: 8           // pill slot <-> neighbouring tiles
-    // Max strip visible left of the pill: what the panel has left after the pill and
-    // a little room on its right, so the pill travels before the strip scrolls.
-    readonly property real sideRoom: Math.max(116, panelW - labelW * v - openPillW - 90)
+    // Max strip visible left of the pill: three units, a unit being the box of a
+    // half-screen-wide column (wider columns use up more of it); the rest clips off.
+    readonly property real unitW: tileWidth(modelData.width / 2)
+    readonly property real sideRoom: 3 * unitW + 2 * tileGap + pillGap
     readonly property int edgePad: 24          // tiles fade over this much past the strip's left edge
     // Label column fits the widest label; labels are right-aligned against the tiles.
     readonly property real labelW: Math.ceil(Math.max(0, ...rows.map(w => labelMetrics.advanceWidth(NiriService.wsLabel(w.id))))) + 15
