@@ -2,5 +2,7 @@
 subset to 0-9 with overlaps removed and renamed so it can't clash with an installed
 copy. It is the closest free match to SF Pro Rounded's figures (footless 1, 8 with a
 smaller top loop). Used for the percentage cut out of the bar's battery icon.
-`BatteryDigitsSolid.ttf` is the same with each figure's counters removed (outer
-contour only); the icon draws the percentage halo with it.
+
+`build_battery_digits.py` rebuilds it and regenerates `components/BatteryHoles.js`,
+the regions each percentage's halo encloses (filled in the outline colour). Rerun it
+if the font, halo, size or tracking in `BatteryIndicator.qml` change.
