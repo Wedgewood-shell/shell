@@ -16,7 +16,7 @@ CaptureMenu menus/CaptureMenu.qml
 singleton CaptureService services/CaptureService.qml
 DisplayMenu menus/DisplayMenu.qml
 singleton DisplayService services/DisplayService.qml
-singleton GestureService services/GestureService.qml
+singleton NiriViewService services/NiriViewService.qml
 IconLabel components/IconLabel.qml
 NetIcon components/NetIcon.qml
 VolumeIcon components/VolumeIcon.qml

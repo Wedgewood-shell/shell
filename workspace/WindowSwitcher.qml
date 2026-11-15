@@ -12,7 +12,7 @@ PanelWindow {
     id: sw
     required property var modelData
     screen: modelData
-    readonly property string outputName: modelData.name
+    property string outputName: modelData.name
 
     // ---- geometry ----
     readonly property int adjPitch: 40         // pill centre <-> adjacent row centre
@@ -90,9 +90,7 @@ PanelWindow {
 
     readonly property var rows: NiriService.wsOnOutput(outputName)
     readonly property var activeWsObj: rows.find(w => w.is_active) || null
-    property int scrubWs: -1
-    property int scrubWin: -1
-    readonly property int curWs: scrubWs >= 0 ? scrubWs : (activeWsObj ? activeWsObj.id : -1)
+    readonly property int curWs: activeWsObj ? activeWsObj.id : -1
     readonly property int curIndex: Math.max(0, rows.findIndex(w => w.id === curWs))
     readonly property var focusedWin: {
         const all = NiriService.windows
@@ -103,8 +101,6 @@ PanelWindow {
     }
     property int lastId: -1
     readonly property int shownId: {
-        if (scrubWin >= 0)
-            return scrubWin
         const f = focusedWin
         if (f && (!open || f.workspace_id === curWs))
             return f.id
@@ -121,17 +117,20 @@ PanelWindow {
     readonly property var shownWin: NiriService.windows[shownId] || null
     readonly property string shownTitle: shownWin ? (shownWin.title || shownWin.app_id || "") : (open ? "Empty workspace" : "")
 
-    // ---- camera: row index centred on the pill (continuous while scrubbing) ----
-    property real scrubRow: 0
-    readonly property real camTarget: live && scrubAxis === "v" ? scrubRow : curIndex
-    property real camRow: camTarget
-    Behavior on camRow {
-        enabled: !sw.scrubbing
+    // ---- camera: fractional row index centred on the pill ----
+    // With niri's view stream the rows follow niri's own rendered workspace position
+    // every frame (swipes, and its settle/switch animations). Without it, an eased
+    // fallback follows the active workspace.
+    readonly property var wsView: NiriViewService.workspaceViews[outputName] || null
+    readonly property bool viewLive: NiriViewService.moving(wsView)
+    property real camFallback: curIndex
+    Behavior on camFallback {
         NumberAnimation {
             duration: sw.motion
             easing.type: Easing.InOutCubic
         }
     }
+    readonly property real camRow: wsView ? wsView.position : camFallback
 
     // Pill position: shifts right to make room for labels and left neighbours,
     // and down so up to two rows above fit.
@@ -193,13 +192,13 @@ PanelWindow {
             let fc = cols.findIndex(col => col.some(t => t.id === anchorId))
             if (fc < 0)
                 fc = 0
-            if (isCur && scrubCol >= 0 && n)
-                fc = Math.min(n - 1, scrubCol)
-            // How much of a pill this row has: the current row has one; during a
-            // vertical swipe it passes continuously from row to row.
-            const rowW = live && scrubAxis === "v" ? clamp01(1 - Math.abs(i - scrubRow)) : (isCur ? 1 : 0)
-            // Focus position along the row; fractional while a horizontal swipe is live.
-            const f = live && scrubAxis === "h" && isCur && n ? Math.max(0, Math.min(n - 1, scrubF)) : fc
+            // How much of a pill this row has: the current row has one; while niri moves
+            // between workspaces it passes continuously from row to row.
+            const rowW = viewLive ? clamp01(1 - Math.abs(i - camRow)) : (isCur ? 1 : 0)
+            // Focus position along the row: niri's fractional column while its camera
+            // moves (swipe or animation), otherwise the focused/active column.
+            const cv = NiriViewService.columnViews[ws.id]
+            const f = n && NiriViewService.moving(cv) ? Math.max(0, Math.min(n - 1, cv.position)) : fc
             const colW = c => c >= 0 && c < n ? clamp01(1 - Math.abs(c - f)) * rowW : 0
             const base = cols.map(col => tileWidth(Math.max(...col.map(t => t.w))))
             const widths = base.map((b, c) => b + (openPillW - b) * colW(c))
@@ -279,115 +278,55 @@ PanelWindow {
     Connections {
         target: WorkspaceController
         function onHudSerialChanged() {
-            if (WorkspaceController.hudScreen !== sw.outputName || sw.scrubbing)
+            if (WorkspaceController.hudScreen !== sw.outputName)
                 return
-            sw.clearScrub()
             const k = WorkspaceController.hudKind
             sw.setVertical(k === "switch" || k === "move")
             sw.open = true
             linger.interval = WorkspaceController.hudKind === "move" ? 2400 : 1600
             linger.restart()
         }
-        function onGestureStarted(axis) {
-            if (WorkspaceController.hudScreen === sw.outputName)
-                sw.beginScrub(axis)
+    }
+    // Swipes: niri reports its camera live, so open as soon as it moves.
+    Connections {
+        target: NiriViewService
+        function onWorkspaceViewMoved(output) {
+            const view = sw.wsView
+            if (output !== sw.outputName || !view || view.driver !== "Gesture")
+                return
+            // Unlocked swipes start a workspace gesture even when moving sideways;
+            // only show the stack once the workspace position actually moves.
+            if (Math.abs(view.position - sw.curIndex) > 0.03)
+                sw.setVertical(true)
+            else if (!sw.open)
+                return
+            sw.keepOpen()
         }
-        function onGestureMoved(amount) {
-            sw.scrub(amount)
+        function onColumnViewMoved(workspaceId) {
+            const ws = NiriService.workspaces[workspaceId]
+            const view = NiriViewService.columnViews[workspaceId]
+            if (!ws || ws.output !== sw.outputName || !view || view.driver !== "Gesture")
+                return
+            if (!sw.open)
+                sw.setVertical(false)
+            sw.keepOpen()
         }
-        function onGestureEnded() {
-            sw.endScrub()
-        }
+    }
+    function keepOpen() {
+        open = true
+        linger.interval = 1600
+        linger.restart()
     }
     Connections {
         target: OverlayController
         function onDismissHud() {
             linger.stop()
-            sw.endScrub()
             sw.open = false
         }
     }
     Timer {
         id: linger
         onTriggered: sw.open = false
-    }
-
-    // ---- live 4-finger swipe ----
-    // `scrubbing` disables easing; `live` makes the scene follow the fingers. On
-    // release, easing comes back first and the scene settles one tick later, so
-    // the snap to the final column/row animates.
-    property bool scrubbing: false
-    property bool live: false
-    property real scrubF: 0
-    property string scrubAxis: ""
-    property int scrubCol: -1
-    property real scrubRow0: 0
-    property int scrubCol0: 0
-    property real scrubColW: 1
-    readonly property Timer settle: Timer {
-        interval: 350
-        onTriggered: sw.clearScrub()
-    }
-    // Drop every gesture override so the view follows niri's state again.
-    function clearScrub() {
-        settle.stop()
-        scrubWs = -1
-        scrubWin = -1
-        scrubCol = -1
-    }
-    function beginScrub(axis) {
-        linger.stop()
-        clearScrub()
-        scrubAxis = axis
-        scrubbing = true
-        live = true
-        scrubWs = curWs
-        scrubRow0 = camRow
-        const info = scene.rows[curIndex]
-        scrubCol0 = info ? info.fc : 0
-        scrubF = scrubCol0
-        const t = scene.tiles[shownId]
-        scrubColW = shownWin && shownWin.layout && shownWin.layout.tile_size ? shownWin.layout.tile_size[0] : modelData.width / 2
-        setVertical(axis === "v")
-        scrubRow = camRow
-        open = true
-    }
-    function rubber(v, lo, hi) {
-        const squash = o => 0.3 * (1 - Math.exp(-o / 0.3))
-        return v < lo ? lo - squash(lo - v) : v > hi ? hi + squash(v - hi) : v
-    }
-    function scrub(amount) {
-        if (!scrubbing)
-            return
-        if (scrubAxis === "v") {
-            scrubRow = rubber(scrubRow0 + amount / 300, 0, rows.length - 1)
-            const i = Math.max(0, Math.min(rows.length - 1, Math.round(scrubRow)))
-            scrubWs = rows[i].id
-            scrubWin = -1
-            scrubCol = -1
-        } else {
-            const info = scene.rows[curIndex]
-            if (!info || !info.cols)
-                return
-            const steps = amount / 1200 * modelData.width / Math.max(1, scrubColW)
-            scrubF = rubber(scrubCol0 + steps, 0, info.cols - 1)
-            const c = Math.max(0, Math.min(info.cols - 1, Math.round(scrubF)))
-            if (c !== scrubCol) {
-                scrubCol = c
-                scrubWin = info.colIds[c]
-            }
-        }
-    }
-    function endScrub() {
-        if (!scrubbing)
-            return
-        scrubbing = false
-        Qt.callLater(() => sw.live = false)
-        linger.interval = 1600
-        linger.restart()
-        // Niri applies the real result within a frame or two; hold the scrubbed
-        // target briefly so the pill does not flick back to the old focus.
-        settle.restart()
     }
 
     // ---- workspace labels ----
@@ -456,7 +395,10 @@ PanelWindow {
                     readonly property var t: sw.scene.tiles[uid] || null
                     property bool placed: false
                     Component.onCompleted: Qt.callLater(() => placed = true)
-                    readonly property bool animate: placed && !sw.scrubbing
+                    // While niri drives a view every frame, follow it directly; ease only
+                    // discrete jumps (e.g. a focus change that doesn't move the camera).
+                    readonly property bool live: sw.viewLive || (t !== null && NiriViewService.moving(NiriViewService.columnViews[t.ws]))
+                    readonly property bool animate: placed && !live
                     x: t ? t.x : 0
                     // Row position animates on its own, so a window moved to another
                     // workspace travels between rows.
