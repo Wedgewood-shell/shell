@@ -25,7 +25,6 @@ Singleton {
         }
     }
 
-    readonly property string profileIcon: profile === "performance" ? "" : profile === "power-saver" ? "" : ""
 
     // Resolve the hwmon glob once; the stats are then read in-process.
     Process {

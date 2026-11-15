@@ -13,16 +13,9 @@ Pill {
         anchors.centerIn: parent
         spacing: 14
 
-        Row {
-            spacing: 4
+        IconLabel {
             anchors.verticalCenter: parent.verticalCenter
-            IconLabel {
-                text: SystemService.profileIcon
-                color: SystemService.profile === "performance" ? Theme.warning : SystemService.profile === "power-saver" ? "#a6da95" : Theme.success
-            }
-            IconLabel {
-                text: SystemService.cpuUsage + "%"
-            }
+            text: SystemService.cpuUsage + "%"
         }
         IconLabel {
             anchors.verticalCenter: parent.verticalCenter
