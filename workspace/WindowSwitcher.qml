@@ -25,10 +25,12 @@ PanelWindow {
     readonly property int edgePad: 12          // strip edge fade zone
     // Label column fits the widest label; labels are right-aligned against the tiles.
     readonly property real labelW: Math.ceil(Math.max(0, ...rows.map(w => labelMetrics.advanceWidth(NiriService.wsLabel(w.id))))) + 10
-    // Room left of the pill: only as much as the current workspace's columns need
-    // (the most they can need, so it holds still while switching within it).
-    property real leftRoom: Math.min(sideRoom, scene.leftNeed + edgePad)
+    // Room left of the pill: only as much as the columns left of the focused one
+    // need, so the first column sits at the edge with no empty gap.
+    property real leftRoom: Math.min(sideRoom, scene.leftNeed + (scene.leftNeed > 0 ? edgePad : 0))
     Behavior on leftRoom {
+        // niri drives it every frame while its camera moves; ease only discrete jumps.
+        enabled: !sw.viewLive && !NiriViewService.moving(NiriViewService.columnViews[sw.curWs])
         NumberAnimation {
             duration: sw.motion
             easing.type: Easing.InOutCubic
@@ -232,8 +234,10 @@ PanelWindow {
                     }
                 }
             }
-            if (isCur && cols.length > 1)
-                leftNeed = cols.slice(0, -1).reduce((sum, col) => sum + tileWidth(Math.max(...col.map(t => t.w))), 0) + tileGap * (cols.length - 2) + pillGap
+            // Room the columns left of the focus take (pill centre minus half a pill),
+            // following the fractional focus while niri's camera moves.
+            if (isCur && n)
+                leftNeed = Math.max(0, shift - openPillW / 2)
             rowInfo.push({
                 id: ws.id,
                 cols: n,
@@ -468,7 +472,12 @@ PanelWindow {
                         }
                     }
                     readonly property real leftX: world.x + x
-                    readonly property real edgeFade: Math.max(0, Math.min(1, leftX / sw.edgePad)) * Math.max(0, Math.min(1, (strip.width - leftX - width) / 28))
+                    // Tiles fade as they scroll off the strip's edges; the focused pill never
+                    // does (with no columns to its left it sits right at the left edge).
+                    readonly property real edgeFade: {
+                        const f = Math.max(0, Math.min(1, leftX / sw.edgePad)) * Math.max(0, Math.min(1, (strip.width - leftX - width) / 28))
+                        return f + (1 - f) * pp
+                    }
                     opacity: t ? sw.rowFade(rowD) * colFade * slotFade * edgeFade : 0
                     visible: t !== null && opacity > 0.01
                     radius: 6 + (Theme.closedRadius - 6) * pp
