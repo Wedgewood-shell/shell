@@ -255,7 +255,7 @@ PanelWindow {
         function onHudSerialChanged() {
             if (WorkspaceController.hudScreen !== sw.outputName || sw.scrubbing)
                 return
-            sw.settle.stop()
+            sw.clearScrub()
             const k = WorkspaceController.hudKind
             sw.setVertical(k === "switch" || k === "move")
             sw.open = true
@@ -299,15 +299,18 @@ PanelWindow {
     property real scrubColW: 1
     readonly property Timer settle: Timer {
         interval: 350
-        onTriggered: {
-            sw.scrubWs = -1
-            sw.scrubWin = -1
-            sw.scrubCol = -1
-        }
+        onTriggered: sw.clearScrub()
+    }
+    // Drop every gesture override so the view follows niri's state again.
+    function clearScrub() {
+        settle.stop()
+        scrubWs = -1
+        scrubWin = -1
+        scrubCol = -1
     }
     function beginScrub(axis) {
         linger.stop()
-        settle.stop()
+        clearScrub()
         scrubAxis = axis
         scrubbing = true
         scrubWs = curWs
