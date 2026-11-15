@@ -48,6 +48,21 @@ MenuPage {
             page.refresh()
         }
     }
+    // The browser's tab shortcuts work while typing here.
+    function handleEvent(event) {
+        if (!(event.modifiers & Qt.ControlModifier) || (event.modifiers & (Qt.AltModifier | Qt.MetaModifier)))
+            return false
+        if (event.key === Qt.Key_T && !(event.modifiers & Qt.ShiftModifier)) {
+            HeliumService.newTab()        // the new tab page asks for the editor again
+            return true
+        }
+        if (event.key === Qt.Key_W && !(event.modifiers & Qt.ShiftModifier)) {
+            OverlayController.launcherOpen = false
+            HeliumService.closeTab()
+            return true
+        }
+        return false
+    }
     function activate(item) {
         OverlayController.launcherOpen = false
         HeliumService.navigate(item.fill)

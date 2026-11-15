@@ -41,6 +41,21 @@ Singleton {
                            }, target()))
     }
 
+    // The editor should start over for the window's current tab (a new tab
+    // opened while it was open).
+    signal editorRestart
+
+    // Another tab became the window's current one while the editor was open
+    // (a three-finger scrub, a shortcut in the browser): the editor shows the
+    // old tab's address, so close it, which gives the keyboard back to the page.
+    // Waits briefly in case the change is a new tab asking for the editor.
+    Timer {
+        id: tabChanged
+        interval: 150
+        onTriggered: if (root.editorOpen)
+            OverlayController.launcherOpen = false
+    }
+
     // Completion results for the editor.
     property var suggestions: []
     property int completeId: 0
@@ -61,6 +76,17 @@ Singleton {
         send(Object.assign({
                                "cmd": "navigate",
                                "text": text
+                           }, target()))
+    }
+    // Shortcuts the editor passes on to the browser.
+    function newTab() {
+        send(Object.assign({
+                               "cmd": "new_tab"
+                           }, target()))
+    }
+    function closeTab() {
+        send(Object.assign({
+                               "cmd": "close_tab"
                            }, target()))
     }
     function complete(text) {
@@ -86,12 +112,18 @@ Singleton {
                                              })
             windows = next
             lastFocusedId = msg.window
+            tabChanged.stop()
             if (!editorOpen)
                 OverlayController.openLauncher("address")
+            else
+                editorRestart()
         } else if (msg.event === "state") {
+            const before = windows[msg.window]
             const next = Object.assign({}, windows)
             next[msg.window] = msg
             windows = next
+            if (editorOpen && msg.window === lastFocusedId && before && msg.tab !== undefined && before.tab !== msg.tab)
+                tabChanged.restart()
             if (msg.focused)
                 lastFocusedId = msg.window
         } else if (msg.event === "closed") {

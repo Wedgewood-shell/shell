@@ -107,6 +107,13 @@ PanelWindow {
             prepare()
     }
     Connections {
+        target: HeliumService
+        function onEditorRestart() {
+            if (win.open && OverlayController.launcherMode === "address")
+                win.prepare()
+        }
+    }
+    Connections {
         target: win.page
         function onClearQuery() {
             field.text = ""
@@ -209,7 +216,7 @@ PanelWindow {
                         Keys.onPressed: event => {
                             if (!win.page)
                                 return
-                            if (win.page.handleKey(event.key)) {
+                            if ((win.page.handleEvent && win.page.handleEvent(event)) || win.page.handleKey(event.key)) {
                                 event.accepted = true
                                 return
                             }
