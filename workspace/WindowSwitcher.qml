@@ -21,8 +21,25 @@ PanelWindow {
     readonly property int tileH: 22
     readonly property int tileGap: 6
     readonly property int pillGap: 8           // pill slot <-> neighbouring tiles
-    readonly property int labelW: 112
-    readonly property int sideRoom: 116        // strip visible left of the pill
+    readonly property int sideRoom: 116        // max strip visible left of the pill
+    readonly property int edgePad: 12          // strip edge fade zone
+    // Label column fits the widest label; labels are right-aligned against the tiles.
+    readonly property real labelW: Math.ceil(Math.max(0, ...rows.map(w => labelMetrics.advanceWidth(NiriService.wsLabel(w.id))))) + 10
+    // Room left of the pill: only as much as the current workspace's columns need
+    // (the most they can need, so it holds still while switching within it).
+    property real leftRoom: Math.min(sideRoom, scene.leftNeed + edgePad)
+    Behavior on leftRoom {
+        NumberAnimation {
+            duration: sw.motion
+            easing.type: Easing.InOutCubic
+        }
+    }
+    FontMetrics {
+        id: labelMetrics
+        font.family: Theme.fontFamily
+        font.pixelSize: 13
+        font.weight: Font.DemiBold
+    }
     readonly property int openPillW: 210
     readonly property int pillH: Theme.barHeight
     readonly property real islandW: OverlayController.islandWidths[outputName] ?? Theme.islandBaseWidth
@@ -132,7 +149,7 @@ PanelWindow {
     // and down so up to two rows above fit.
     readonly property real pillW: idleW + (openPillW - idleW) * e
     readonly property real idleW: Math.max(54, Math.min(idleMax, titleMetrics.advanceWidth + 54))
-    readonly property real pillCX: idleW / 2 + (labelW * v + sideRoom + openPillW / 2 - idleW / 2) * e
+    readonly property real pillCX: idleW / 2 + (labelW * v + leftRoom + openPillW / 2 - idleW / 2) * e
     readonly property real pillCY: pillH / 2 + Math.min(1, camRow) * lift * e * v
     // Vertical offset of a row `d` rows away from the camera (fractional while moving).
     function rowY(d) {
@@ -164,6 +181,7 @@ PanelWindow {
     }
     readonly property var scene: {
         const wins = NiriService.windows, tiles = {}, rowInfo = []
+        let leftNeed = 0
         for (let i = 0; i < rows.length; i++) {
             const ws = rows[i], byCol = {}
             for (const k in wins) {
@@ -211,6 +229,8 @@ PanelWindow {
                         h: h
                     }
             }
+            if (isCur && cols.length > 1)
+                leftNeed = cols.slice(0, -1).reduce((sum, col) => sum + tileWidth(Math.max(...col.map(t => t.w))), 0) + tileGap * (cols.length - 2) + pillGap
             rowInfo.push({
                 id: ws.id,
                 cols: cols.length,
@@ -219,7 +239,8 @@ PanelWindow {
         }
         return {
             tiles: tiles,
-            rows: rowInfo
+            rows: rowInfo,
+            leftNeed: leftNeed
         }
     }
 
@@ -369,8 +390,9 @@ PanelWindow {
             required property var modelData
             required property int index
             readonly property real d: Math.abs(index - sw.camRow)
-            x: 14
-            width: sw.labelW - 18
+            x: 0
+            width: sw.labelW - 6
+            horizontalAlignment: Text.AlignRight
             y: sw.pillCY + sw.rowY(index - sw.camRow) - height / 2
             visible: opacity > 0.01
             opacity: sw.e * sw.v * sw.rowFade(d)
@@ -487,7 +509,7 @@ PanelWindow {
                         }
                     }
                     readonly property real leftX: world.x + x
-                    readonly property real edgeFade: Math.max(0, Math.min(1, leftX / 28)) * Math.max(0, Math.min(1, (strip.width - leftX - width) / 28))
+                    readonly property real edgeFade: Math.max(0, Math.min(1, leftX / sw.edgePad)) * Math.max(0, Math.min(1, (strip.width - leftX - width) / 28))
                     opacity: t ? sw.rowFade(rowD) * colFade * slotFade * edgeFade : 0
                     visible: t !== null && opacity > 0.01
                     radius: 6
