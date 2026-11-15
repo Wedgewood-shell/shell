@@ -24,7 +24,7 @@ PanelWindow {
     readonly property int sideRoom: 116        // max strip visible left of the pill
     readonly property int edgePad: 12          // tiles fade over this much past the strip's left edge
     // Label column fits the widest label; labels are right-aligned against the tiles.
-    readonly property real labelW: Math.ceil(Math.max(0, ...rows.map(w => labelMetrics.advanceWidth(NiriService.wsLabel(w.id))))) + 10
+    readonly property real labelW: Math.ceil(Math.max(0, ...rows.map(w => labelMetrics.advanceWidth(NiriService.wsLabel(w.id))))) + 15
     // Room left of the pill: only as much as the columns left of the focus take,
     // so the first column sits at the edge with no empty gap. It follows the
     // (animated) focus position, so it only eases on layout changes.
@@ -119,7 +119,7 @@ PanelWindow {
         Qt.callLater(syncFocus)
     }
     readonly property var shownWin: NiriService.windows[shownId] || null
-    readonly property string shownTitle: shownWin ? (shownWin.title || shownWin.app_id || "") : (open ? "Empty workspace" : "")
+    readonly property string shownTitle: shownWin ? (shownWin.title || shownWin.app_id || "") : ""
 
     // ---- camera: fractional row index centred on the pill ----
     // With niri's view stream the rows follow niri's own rendered workspace position
@@ -473,26 +473,6 @@ PanelWindow {
             x: sw.pillLeft - strip.x
             y: sw.pillCY
 
-            // Empty workspaces: a faint placeholder where their tiles would be.
-            Repeater {
-                model: sw.rows
-                delegate: Rectangle {
-                    required property var modelData
-                    required property int index
-                    readonly property var info: sw.scene.rows[index]
-                    visible: info !== undefined && info.cols === 0 && modelData.id !== sw.curWs
-                    x: -width / 2
-                    y: sw.rowY(index - sw.camRow) - height / 2
-                    width: sw.tileH
-                    height: sw.tileH
-                    radius: 6
-                    color: "transparent"
-                    border.width: 1
-                    border.color: "#3a4468"
-                    opacity: sw.rowFade(Math.abs(index - sw.camRow)) * sw.e
-                }
-            }
-
             Repeater {
                 model: winIds
                 delegate: Rectangle {
@@ -595,7 +575,7 @@ PanelWindow {
                         implicitSize: small + (sw.pillIcon - small) * tile.pp
                         x: (tile.width - implicitSize) / 2 * (1 - tile.pp) + sw.pillPad * tile.pp
                         anchors.verticalCenter: parent.verticalCenter
-                        source: tile.t ? NiriService.iconFor(tile.t.app) : ""
+                        source: tile.t ? NiriService.windowIcon(NiriService.windows[tile.uid]) : ""
                     }
                     Text {
                         visible: tile.pp > 0.01
@@ -627,7 +607,7 @@ PanelWindow {
     Rectangle {
         id: pill
         opacity: sw.overlayOn
-        visible: (sw.shownTitle.length > 0 || sw.e > 0) && opacity > 0.01
+        visible: sw.shownWin !== null && opacity > 0.01
         x: sw.pillLeft
         y: sw.pillCY - height / 2
         width: sw.pillW
@@ -642,7 +622,7 @@ PanelWindow {
             x: sw.pillPad
             anchors.verticalCenter: parent.verticalCenter
             implicitSize: sw.pillIcon
-            source: sw.shownWin ? NiriService.iconFor(sw.shownWin.app_id) : ""
+            source: NiriService.windowIcon(sw.shownWin)
         }
         Text {
             x: sw.shownWin ? sw.pillTextX : sw.pillPad

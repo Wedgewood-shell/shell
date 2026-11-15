@@ -174,6 +174,27 @@ Singleton {
         return Quickshell.iconPath((e && e.icon) ? e.icon : (appId || ""), "application-x-executable")
     }
 
+    // Terminal apps get their own icon, recognised by the title they set
+    // (only for terminal windows, so a browser tab named "Zellij …" stays a browser).
+    readonly property var terminalIds: ["kitty", "foot", "footclient", "alacritty", "Alacritty", "com.mitchellh.ghostty", "org.wezfurlong.wezterm"]
+    readonly property var terminalApps: [
+        { re: /^π(\s|$)/, icon: Qt.resolvedUrl("../assets/icons/pi.svg") },
+        { re: /^Yazi\b/, icon: "yazi" },
+        { re: /^Zellij\b/, icon: "zellij" },
+        { re: /(^n?vim\b|\bN?VIM$)/, icon: "nvim" }
+    ]
+    function windowIcon(win) {
+        if (!win)
+            return ""
+        if (terminalIds.indexOf(win.app_id) >= 0) {
+            const t = win.title || ""
+            for (const a of terminalApps)
+                if (a.re.test(t))
+                    return a.icon.toString().indexOf("/") >= 0 ? a.icon : Quickshell.iconPath(a.icon, true) || iconFor(win.app_id)
+        }
+        return iconFor(win.app_id)
+    }
+
     // Scaled-down picture of a workspace's scrolling layout: columns left to right, tiles stacked inside.
     // Coordinates are in niri logical pixels; the caller scales them to fit.
     readonly property int layoutGap: 16
