@@ -17,7 +17,7 @@ Row {
     property bool plugged: BatteryService.plugged
     property bool charging: BatteryService.charging
     property string profile: SystemService.profile
-    property real bodyHeight: 23
+    property real bodyHeight: 16.5
 
     readonly property int level: Math.max(0, Math.min(100, percentage))
     readonly property bool performance: profile === "performance"
