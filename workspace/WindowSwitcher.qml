@@ -15,7 +15,9 @@ PanelWindow {
     readonly property string outputName: modelData.name
 
     // ---- geometry ----
-    readonly property int pitch: 36            // row-to-row distance
+    readonly property int adjPitch: 40         // pill centre <-> adjacent row centre
+    readonly property int pitch: 30            // between further rows
+    readonly property int lift: 30             // pill drop in vertical mode (one row peeks above)
     readonly property int tileH: 22
     readonly property int tileGap: 6
     readonly property int pillGap: 8           // pill slot <-> neighbouring tiles
@@ -39,7 +41,7 @@ PanelWindow {
     }
     // Fixed surface; only the content animates.
     implicitWidth: Math.max(1, Math.round(modelData.width / 2))
-    implicitHeight: pillH + 4 * pitch + 16
+    implicitHeight: pillH / 2 + lift + adjPitch + 2 * pitch + tileH
     exclusionMode: ExclusionMode.Ignore
     color: "transparent"
     WlrLayershell.namespace: "window-switcher"
@@ -131,7 +133,12 @@ PanelWindow {
     readonly property real pillW: idleW + (openPillW - idleW) * e
     readonly property real idleW: Math.max(54, Math.min(idleMax, titleMetrics.advanceWidth + 54))
     readonly property real pillCX: idleW / 2 + (labelW * v + sideRoom + openPillW / 2 - idleW / 2) * e
-    readonly property real pillCY: pillH / 2 + Math.min(2, camRow) * pitch * e * v
+    readonly property real pillCY: pillH / 2 + Math.min(1, camRow) * lift * e * v
+    // Vertical offset of a row `d` rows away from the camera (fractional while moving).
+    function rowY(d) {
+        const a = Math.abs(d)
+        return a <= 1 ? d * adjPitch : Math.sign(d) * (adjPitch + (a - 1) * pitch)
+    }
     // Neighbouring rows are only shown in vertical mode.
     // A fresh open starts directly in its mode; switching modes while open animates.
     function setVertical(on) {
@@ -199,7 +206,7 @@ PanelWindow {
                         pill: isCur && c === fc,
                         app: col[r].app,
                         x: lefts[c] - shift,
-                        y: i * pitch - tileH / 2 + r * (h + 2),
+                        yoff: -tileH / 2 + r * (h + 2),
                         w: widths[c],
                         h: h
                     }
@@ -361,7 +368,7 @@ PanelWindow {
             readonly property real d: Math.abs(index - sw.camRow)
             x: 14
             width: sw.labelW - 18
-            y: sw.pillCY + (index - sw.camRow) * sw.pitch - height / 2
+            y: sw.pillCY + sw.rowY(index - sw.camRow) - height / 2
             visible: opacity > 0.01
             opacity: sw.e * sw.v * sw.rowFade(d)
             elide: Text.ElideRight
@@ -387,7 +394,7 @@ PanelWindow {
         Item {
             id: world
             x: sw.pillCX - strip.x
-            y: sw.pillCY - sw.camRow * sw.pitch
+            y: sw.pillCY
 
             // Empty workspaces: a faint placeholder where their tiles would be.
             Repeater {
@@ -398,7 +405,7 @@ PanelWindow {
                     readonly property var info: sw.scene.rows[index]
                     visible: info !== undefined && info.cols === 0 && modelData.id !== sw.curWs
                     x: -width / 2
-                    y: index * sw.pitch - height / 2
+                    y: sw.rowY(index - sw.camRow) - height / 2
                     width: sw.tileH
                     height: sw.tileH
                     radius: 6
@@ -419,17 +426,28 @@ PanelWindow {
                     Component.onCompleted: Qt.callLater(() => placed = true)
                     readonly property bool animate: placed
                     x: t ? t.x : 0
-                    y: t ? t.y : 0
-                    width: t ? t.w : 0
-                    height: t ? t.h : 0
-                    Behavior on x {
+                    // Row position animates on its own, so a window moved to another
+                    // workspace travels between rows.
+                    property real rowPos: t ? t.row : 0
+                    property real yoff: t ? t.yoff : 0
+                    Behavior on rowPos {
                         enabled: tile.animate
                         NumberAnimation {
                             duration: sw.motion
                             easing.type: Easing.InOutCubic
                         }
                     }
-                    Behavior on y {
+                    Behavior on yoff {
+                        enabled: tile.animate
+                        NumberAnimation {
+                            duration: sw.motion
+                            easing.type: Easing.InOutCubic
+                        }
+                    }
+                    y: sw.rowY(rowPos - sw.camRow) + yoff
+                    width: t ? t.w : 0
+                    height: t ? t.h : 0
+                    Behavior on x {
                         enabled: tile.animate
                         NumberAnimation {
                             duration: sw.motion
@@ -451,7 +469,7 @@ PanelWindow {
                         }
                     }
                     // Fade by row distance, column distance and the strip edges.
-                    readonly property real rowD: Math.abs((y + height / 2) / sw.pitch - sw.camRow)
+                    readonly property real rowD: Math.abs(rowPos - sw.camRow)
                     property real colFade: t ? Math.max(0.3, 1 - 0.2 * Math.max(0, Math.abs(t.cd) - 1)) : 0
                     Behavior on colFade {
                         NumberAnimation {
