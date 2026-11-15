@@ -122,12 +122,11 @@ PanelWindow {
     readonly property string shownTitle: shownWin ? (shownWin.title || shownWin.app_id || "") : (open ? "Empty workspace" : "")
 
     // ---- camera: row index centred on the pill (continuous while scrubbing) ----
-    property bool vScrub: false
     property real scrubRow: 0
-    readonly property real camTarget: vScrub ? scrubRow : curIndex
+    readonly property real camTarget: live && scrubAxis === "v" ? scrubRow : curIndex
     property real camRow: camTarget
     Behavior on camRow {
-        enabled: !sw.vScrub
+        enabled: !sw.scrubbing
         NumberAnimation {
             duration: sw.motion
             easing.type: Easing.InOutCubic
@@ -165,6 +164,9 @@ PanelWindow {
     }
 
     // ---- scene: every window's slot, relative to the pill centre ----
+    function clamp01(x) {
+        return Math.max(0, Math.min(1, x))
+    }
     function tileWidth(px) {
         return Math.round(tileH * Math.max(1, Math.min(4, px / Math.max(1, modelData.width) * 2.5)))
     }
@@ -186,39 +188,48 @@ PanelWindow {
                 })
             }
             const cols = Object.keys(byCol).map(Number).sort((a, b) => a - b).map(c => byCol[c].sort((a, b) => a.r - b.r))
-            const isCur = ws.id === curWs
+            const isCur = ws.id === curWs, n = cols.length
             const anchorId = isCur ? shownId : ws.active_window_id
             let fc = cols.findIndex(col => col.some(t => t.id === anchorId))
             if (fc < 0)
                 fc = 0
-            if (isCur && scrubCol >= 0 && cols.length)
-                fc = Math.min(cols.length - 1, scrubCol)
-            const widths = cols.map((col, c) => isCur && c === fc ? openPillW : tileWidth(Math.max(...col.map(t => t.w))))
-            const gapAfter = c => (isCur && (c === fc || c + 1 === fc)) ? pillGap : tileGap
+            if (isCur && scrubCol >= 0 && n)
+                fc = Math.min(n - 1, scrubCol)
+            // How much of a pill this row has: the current row has one; during a
+            // vertical swipe it passes continuously from row to row.
+            const rowW = live && scrubAxis === "v" ? clamp01(1 - Math.abs(i - scrubRow)) : (isCur ? 1 : 0)
+            // Focus position along the row; fractional while a horizontal swipe is live.
+            const f = live && scrubAxis === "h" && isCur && n ? Math.max(0, Math.min(n - 1, scrubF)) : fc
+            const colW = c => c >= 0 && c < n ? clamp01(1 - Math.abs(c - f)) * rowW : 0
+            const base = cols.map(col => tileWidth(Math.max(...col.map(t => t.w))))
+            const widths = base.map((b, c) => b + (openPillW - b) * colW(c))
             const lefts = []
             let x = 0
-            for (let c = 0; c < cols.length; c++) {
+            for (let c = 0; c < n; c++) {
                 lefts.push(x)
-                x += widths[c] + gapAfter(c)
+                x += widths[c] + tileGap + (pillGap - tileGap) * Math.max(colW(c), colW(c + 1))
             }
-            const shift = cols.length ? lefts[fc] + widths[fc] / 2 : 0
-            for (let c = 0; c < cols.length; c++) {
-                const col = cols[c], n = col.length
-                const h = (tileH - 2 * (n - 1)) / n
-                const pillId = isCur && c === fc ? (col.some(t => t.id === shownId) ? shownId : col[0].id) : -1
-                for (let r = 0; r < n; r++) {
-                    const isPill = col[r].id === pillId
+            const centre = c => lefts[c] + widths[c] / 2
+            const f0 = Math.floor(f), f1 = Math.min(n - 1, f0 + 1)
+            const shift = n ? centre(f0) + (centre(f1) - centre(f0)) * (f - f0) : 0
+            for (let c = 0; c < n; c++) {
+                const col = cols[c], k = col.length, wgt = colW(c)
+                const h0 = (tileH - 2 * (k - 1)) / k
+                const pillId = wgt > 0 ? (col.some(t => t.id === anchorId) ? anchorId : col[0].id) : -1
+                for (let r = 0; r < k; r++) {
+                    const isPill = col[r].id === pillId, pp = isPill ? wgt : 0
+                    const y0 = -tileH / 2 + r * (h0 + 2)
                     tiles[col[r].id] = {
                         ws: ws.id,
                         row: i,
-                        cd: c - fc,
-                        pill: isPill,
-                        hidden: pillId >= 0 && !isPill,
+                        cd: c - f,
+                        pp: pp,
+                        hide: pillId >= 0 && !isPill ? wgt : 0,
                         app: col[r].app,
                         x: lefts[c] - shift,
-                        yoff: isPill ? -pillH / 2 : -tileH / 2 + r * (h + 2),
+                        yoff: y0 + (-pillH / 2 - y0) * pp,
                         w: widths[c],
-                        h: isPill ? pillH : h
+                        h: h0 + (pillH - h0) * pp
                     }
                 }
             }
@@ -226,8 +237,9 @@ PanelWindow {
                 leftNeed = cols.slice(0, -1).reduce((sum, col) => sum + tileWidth(Math.max(...col.map(t => t.w))), 0) + tileGap * (cols.length - 2) + pillGap
             rowInfo.push({
                 id: ws.id,
-                cols: cols.length,
-                fc: fc
+                cols: n,
+                fc: fc,
+                colIds: cols.map(col => col[0].id)
             })
         }
         return {
@@ -301,7 +313,12 @@ PanelWindow {
     }
 
     // ---- live 4-finger swipe ----
+    // `scrubbing` disables easing; `live` makes the scene follow the fingers. On
+    // release, easing comes back first and the scene settles one tick later, so
+    // the snap to the final column/row animates.
     property bool scrubbing: false
+    property bool live: false
+    property real scrubF: 0
     property string scrubAxis: ""
     property int scrubCol: -1
     property real scrubRow0: 0
@@ -323,17 +340,16 @@ PanelWindow {
         clearScrub()
         scrubAxis = axis
         scrubbing = true
+        live = true
         scrubWs = curWs
         scrubRow0 = camRow
         const info = scene.rows[curIndex]
         scrubCol0 = info ? info.fc : 0
+        scrubF = scrubCol0
         const t = scene.tiles[shownId]
         scrubColW = shownWin && shownWin.layout && shownWin.layout.tile_size ? shownWin.layout.tile_size[0] : modelData.width / 2
         setVertical(axis === "v")
-        if (axis === "v") {
-            scrubRow = camRow
-            vScrub = true
-        }
+        scrubRow = camRow
         open = true
     }
     function rubber(v, lo, hi) {
@@ -354,17 +370,19 @@ PanelWindow {
             if (!info || !info.cols)
                 return
             const steps = amount / 1200 * modelData.width / Math.max(1, scrubColW)
-            scrubCol = Math.max(0, Math.min(info.cols - 1, Math.round(scrubCol0 + steps)))
-            const ids = Object.keys(scene.tiles).map(Number).filter(id => scene.tiles[id].ws === curWs && scene.tiles[id].cd === scrubCol - info.fc)
-            if (ids.length)
-                scrubWin = ids[0]
+            scrubF = rubber(scrubCol0 + steps, 0, info.cols - 1)
+            const c = Math.max(0, Math.min(info.cols - 1, Math.round(scrubF)))
+            if (c !== scrubCol) {
+                scrubCol = c
+                scrubWin = info.colIds[c]
+            }
         }
     }
     function endScrub() {
         if (!scrubbing)
             return
         scrubbing = false
-        vScrub = false
+        Qt.callLater(() => sw.live = false)
         linger.interval = 1600
         linger.restart()
         // Niri applies the real result within a frame or two; hold the scrubbed
@@ -438,7 +456,7 @@ PanelWindow {
                     readonly property var t: sw.scene.tiles[uid] || null
                     property bool placed: false
                     Component.onCompleted: Qt.callLater(() => placed = true)
-                    readonly property bool animate: placed
+                    readonly property bool animate: placed && !sw.scrubbing
                     x: t ? t.x : 0
                     // Row position animates on its own, so a window moved to another
                     // workspace travels between rows.
@@ -486,12 +504,13 @@ PanelWindow {
                     readonly property real rowD: Math.abs(rowPos - sw.camRow)
                     property real colFade: t ? Math.max(0.3, 1 - 0.2 * Math.max(0, Math.abs(t.cd) - 1)) : 0
                     Behavior on colFade {
+                        enabled: tile.animate
                         NumberAnimation {
                             duration: sw.motion
                         }
                     }
                     // 0 = small box, 1 = expanded into the pill (icon slides left, title appears).
-                    property real pp: t && t.pill ? 1 : 0
+                    property real pp: t ? t.pp : 0
                     Behavior on pp {
                         enabled: tile.animate
                         NumberAnimation {
@@ -499,7 +518,7 @@ PanelWindow {
                             easing.type: Easing.InOutCubic
                         }
                     }
-                    property real slotFade: t && t.hidden ? 0 : 1
+                    property real slotFade: t ? 1 - t.hide : 1
                     Behavior on slotFade {
                         enabled: tile.animate
                         NumberAnimation {
