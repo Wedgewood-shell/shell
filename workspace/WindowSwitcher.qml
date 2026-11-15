@@ -22,15 +22,15 @@ PanelWindow {
     readonly property int tileGap: 6
     readonly property int pillGap: 8           // pill slot <-> neighbouring tiles
     readonly property int sideRoom: 116        // max strip visible left of the pill
-    readonly property int edgePad: 12          // strip edge fade zone
+    readonly property int edgePad: 12          // tiles fade over this much past the strip's left edge
     // Label column fits the widest label; labels are right-aligned against the tiles.
     readonly property real labelW: Math.ceil(Math.max(0, ...rows.map(w => labelMetrics.advanceWidth(NiriService.wsLabel(w.id))))) + 10
-    // Room left of the pill: only as much as the columns left of the focused one
-    // need, so the first column sits at the edge with no empty gap.
-    property real leftRoom: Math.min(sideRoom, scene.leftNeed + (scene.leftNeed > 0 ? edgePad : 0))
+    // Room left of the pill: only as much as the columns left of the focus take,
+    // so the first column sits at the edge with no empty gap. It follows the
+    // (animated) focus position, so it only eases on layout changes.
+    property real leftRoom: Math.min(sideRoom, scene.leftNeed)
     Behavior on leftRoom {
-        // niri drives it every frame while its camera moves; ease only discrete jumps.
-        enabled: !sw.viewLive && !NiriViewService.moving(NiriViewService.columnViews[sw.curWs])
+        enabled: !sw.focusDriven
         NumberAnimation {
             duration: sw.motion
             easing.type: Easing.InOutCubic
@@ -71,9 +71,10 @@ PanelWindow {
     property bool open: false
     property real e: open ? 1 : 0             // 0 = resting pill, 1 = expanded
     Behavior on e {
+        // Opening keeps pace with niri's camera, which starts fast.
         NumberAnimation {
             duration: sw.motion
-            easing.type: Easing.InOutCubic
+            easing.type: sw.open ? Easing.OutCubic : Easing.InOutCubic
         }
     }
 
@@ -115,6 +116,7 @@ PanelWindow {
     onShownIdChanged: {
         if (shownId >= 0 && focusedWin && shownId === focusedWin.id)
             lastId = shownId
+        Qt.callLater(syncFocus)
     }
     readonly property var shownWin: NiriService.windows[shownId] || null
     readonly property string shownTitle: shownWin ? (shownWin.title || shownWin.app_id || "") : (open ? "Empty workspace" : "")
@@ -134,11 +136,36 @@ PanelWindow {
     }
     readonly property real camRow: wsView ? wsView.position : camFallback
 
-    // Pill position: shifts right to make room for labels and left neighbours,
-    // and down so up to two rows above fit.
-    readonly property real pillW: idleW + (openPillW - idleW) * e
-    readonly property real idleW: Math.max(54, Math.min(idleMax, titleMetrics.advanceWidth + 54))
-    readonly property real pillCX: idleW / 2 + (labelW * v + leftRoom + openPillW / 2 - idleW / 2) * e
+    // Pill position: its left edge is the module's at rest; open, it shifts right to
+    // make room for labels and left neighbours, and down so up to two rows above fit.
+    // At rest a pill fits its title; open, every pill is openPillW wide.
+    function pillWidthFor(title) {
+        const rest = Math.max(54, Math.min(idleMax, titleFont.advanceWidth(title) + 54))
+        return rest + (openPillW - rest) * e
+    }
+    function titleOf(win) {
+        return win ? (win.title || win.app_id || "") : ""
+    }
+    readonly property real pillW: pillWidthFor(shownTitle)
+    // The left room counts from where the strip was when it started opening or
+    // closing (restLeft), so columns at the module's left edge stay there and only
+    // the focus travels, even when focus moves while the switcher opens.
+    // The rest offset settles faster than the opening itself, so a column that has
+    // to enter from the left is in place before it has faded in.
+    readonly property real pillLeft: Math.max(0, labelW * v * e + leftRoom - Math.pow(1 - e, 3) * restLeft)
+    property real restSnap: 0
+    property bool restFrozen: false
+    readonly property real restLeft: restFrozen ? restSnap : leftRoom
+    onOpenChanged: {
+        // Opening: keep where the strip is now (at rest: the current left room).
+        // Closing: settle so that at rest the pill is back at the module's edge.
+        restSnap = open ? restLeft : leftRoom
+        restFrozen = true
+    }
+    onEChanged: {
+        if (!open && e <= 0)
+            restFrozen = false
+    }
     readonly property real pillCY: pillH / 2 + Math.min(1, camRow) * lift * e * v
     // Vertical offset of a row `d` rows away from the camera (fractional while moving).
     function rowY(d) {
@@ -157,11 +184,10 @@ PanelWindow {
         return f * (1 - Math.min(1, d * 2) * (1 - v))
     }
 
-    TextMetrics {
-        id: titleMetrics
+    FontMetrics {
+        id: titleFont
         font.family: Theme.fontFamily
         font.pixelSize: 14
-        text: sw.shownTitle
     }
 
     // ---- scene: every window's slot, relative to the pill centre ----
@@ -171,58 +197,125 @@ PanelWindow {
     function tileWidth(px) {
         return Math.round(tileH * Math.max(1, Math.min(4, px / Math.max(1, modelData.width) * 2.5)))
     }
+    // Tiled windows of a workspace as columns (left to right) of tiles (top to bottom).
+    function columnsOf(wsId) {
+        const wins = NiriService.windows, byCol = {}
+        for (const k in wins) {
+            const w = wins[k]
+            const pos = w.workspace_id === wsId && w.layout && w.layout.pos_in_scrolling_layout
+            if (!pos)
+                continue
+            ;(byCol[pos[0]] = byCol[pos[0]] || []).push({
+                id: w.id,
+                app: w.app_id || "",
+                r: pos[1],
+                w: w.layout.tile_size ? w.layout.tile_size[0] : 0
+            })
+        }
+        return Object.keys(byCol).map(Number).sort((a, b) => a - b).map(c => byCol[c].sort((a, b) => a.r - b.r))
+    }
+    function columnOf(cols, id) {
+        return Math.max(0, cols.findIndex(col => col.some(t => t.id === id)))
+    }
+    readonly property var curCols: columnsOf(curWs)
+    readonly property int curFc: columnOf(curCols, shownId)
+
+    // ---- focus: one fractional column position drives the whole current row ----
+    // Widths, the tile<->pill morph, the slide and the left room all follow it, so a
+    // focus change eases exactly like a swipe. niri's own column position drives it
+    // while niri's camera moves; otherwise it eases to the focused column itself.
+    property real focusF: 0
+    property int focusWs: -1
+    property int focusWin: -1
+    readonly property var curView: NiriViewService.columnViews[curWs]
+    readonly property bool niriDrives: NiriViewService.moving(curView)
+    readonly property bool focusDriven: focusAnim.running || niriDrives || viewLive
+    NumberAnimation {
+        id: focusAnim
+        target: sw
+        property: "focusF"
+        duration: sw.motion
+        easing.type: Easing.InOutCubic
+    }
+    function syncFocus() {
+        const n = curCols.length
+        if (niriDrives && n) {
+            focusAnim.stop()
+            focusF = Math.max(0, Math.min(n - 1, curView.position))
+        } else if (curWs !== focusWs || shownId === focusWin) {
+            // Another workspace, or the same window moved: no focus travel.
+            focusAnim.stop()
+            focusF = curFc
+        } else if (Math.abs(curFc - focusF) > 1e-3 && !(focusAnim.running && focusAnim.to === curFc)) {
+            focusAnim.stop()
+            focusAnim.to = curFc
+            focusAnim.start()
+        }
+        // Focus travelling within the workspace: open right away (the HUD event
+        // arrives a little later) so the strip and the focus move together.
+        if (focusWs === curWs && shownId !== focusWin && shownId >= 0 && focusWin >= 0 && canShow()) {
+            if (!open)
+                setVertical(false)
+            keepOpen()
+        }
+        focusWs = curWs
+        focusWin = shownId
+    }
+    onCurFcChanged: Qt.callLater(syncFocus)
+    onCurWsChanged: Qt.callLater(syncFocus)
+    onCurColsChanged: Qt.callLater(syncFocus)
+    Connections {
+        target: NiriViewService
+        function onColumnViewsChanged() {
+            sw.syncFocus()
+        }
+    }
+
+    // ---- scene: every window's slot; x is relative to the pill's left edge ----
     readonly property var scene: {
         const wins = NiriService.windows, tiles = {}, rowInfo = []
         let leftNeed = 0
         for (let i = 0; i < rows.length; i++) {
-            const ws = rows[i], byCol = {}
-            for (const k in wins) {
-                const w = wins[k]
-                const pos = w.workspace_id === ws.id && w.layout && w.layout.pos_in_scrolling_layout
-                if (!pos)
-                    continue
-                ;(byCol[pos[0]] = byCol[pos[0]] || []).push({
-                    id: w.id,
-                    app: w.app_id || "",
-                    r: pos[1],
-                    w: w.layout.tile_size ? w.layout.tile_size[0] : 0
-                })
-            }
-            const cols = Object.keys(byCol).map(Number).sort((a, b) => a - b).map(c => byCol[c].sort((a, b) => a.r - b.r))
+            const ws = rows[i]
+            const cols = ws.id === curWs ? curCols : columnsOf(ws.id)
             const isCur = ws.id === curWs, n = cols.length
             const anchorId = isCur ? shownId : ws.active_window_id
-            let fc = cols.findIndex(col => col.some(t => t.id === anchorId))
-            if (fc < 0)
-                fc = 0
+            const fc = columnOf(cols, anchorId)
             // How much of a pill this row has: the current row has one; while niri moves
             // between workspaces it passes continuously from row to row.
             const rowW = viewLive ? clamp01(1 - Math.abs(i - camRow)) : (isCur ? 1 : 0)
-            // Focus position along the row: niri's fractional column while its camera
-            // moves (swipe or animation), otherwise the focused/active column.
+            // Focus position along the row (fractional while it moves).
             const cv = NiriViewService.columnViews[ws.id]
-            const f = n && NiriViewService.moving(cv) ? Math.max(0, Math.min(n - 1, cv.position)) : fc
+            const clampF = x => Math.max(0, Math.min(n - 1, x))
+            const f = !n ? 0 : isCur && focusWs === curWs ? clampF(focusF) : NiriViewService.moving(cv) ? clampF(cv.position) : fc
             const colW = c => c >= 0 && c < n ? clamp01(1 - Math.abs(c - f)) * rowW : 0
-            const base = cols.map(col => tileWidth(Math.max(...col.map(t => t.w))))
-            const widths = base.map((b, c) => b + (openPillW - b) * colW(c))
+            const pillIdOf = (c, wgt) => wgt > 0 ? (cols[c].some(t => t.id === anchorId) ? anchorId : cols[c][0].id) : -1
+            const widths = cols.map((col, c) => {
+                const b = tileWidth(Math.max(...col.map(t => t.w)))
+                const wgt = colW(c)
+                return wgt > 0 ? b + (pillWidthFor(titleOf(wins[pillIdOf(c, wgt)])) - b) * wgt : b
+            })
             const lefts = []
             let x = 0
             for (let c = 0; c < n; c++) {
                 lefts.push(x)
                 x += widths[c] + tileGap + (pillGap - tileGap) * Math.max(colW(c), colW(c + 1))
             }
-            const centre = c => lefts[c] + widths[c] / 2
             const f0 = Math.floor(f), f1 = Math.min(n - 1, f0 + 1)
-            const shift = n ? centre(f0) + (centre(f1) - centre(f0)) * (f - f0) : 0
+            const shift = n ? lefts[f0] + (lefts[f1] - lefts[f0]) * (f - f0) : 0
             for (let c = 0; c < n; c++) {
                 const col = cols[c], k = col.length, wgt = colW(c)
                 const h0 = (tileH - 2 * (k - 1)) / k
-                const pillId = wgt > 0 ? (col.some(t => t.id === anchorId) ? anchorId : col[0].id) : -1
+                const pillId = pillIdOf(c, wgt)
                 for (let r = 0; r < k; r++) {
                     const isPill = col[r].id === pillId, pp = isPill ? wgt : 0
                     const y0 = -tileH / 2 + r * (h0 + 2)
                     tiles[col[r].id] = {
                         ws: ws.id,
                         row: i,
+                        col: c,
+                        r: r,
+                        k: k,
                         cd: c - f,
                         pp: pp,
                         hide: pillId >= 0 && !isPill ? wgt : 0,
@@ -234,10 +327,8 @@ PanelWindow {
                     }
                 }
             }
-            // Room the columns left of the focus take (pill centre minus half a pill),
-            // following the fractional focus while niri's camera moves.
-            if (isCur && n)
-                leftNeed = Math.max(0, shift - openPillW / 2)
+            if (isCur)
+                leftNeed = shift
             rowInfo.push({
                 id: ws.id,
                 cols: n,
@@ -250,6 +341,12 @@ PanelWindow {
             rows: rowInfo,
             leftNeed: leftNeed
         }
+    }
+    // The pill is the focused tile itself (at rest too); a separate resting pill is
+    // only drawn when there is no such tile (empty workspace, floating window).
+    readonly property bool pillIsTile: {
+        const t = scene.tiles[shownId]
+        return shownId >= 0 && t !== undefined && t.ws === curWs
     }
 
     // Persistent delegates per window, so moved windows fly between rows.
@@ -276,7 +373,10 @@ PanelWindow {
             sw.syncIds()
         }
     }
-    Component.onCompleted: syncIds()
+    Component.onCompleted: {
+        syncIds()
+        syncFocus()
+    }
 
     // ---- triggers ----
     Connections {
@@ -316,6 +416,9 @@ PanelWindow {
             sw.keepOpen()
         }
     }
+    function canShow() {
+        return NiriService.syncedAt !== 0 && Date.now() - NiriService.syncedAt >= 1500 && !NiriService.overviewOpen && !OverlayController.launcherOpen && !OverlayController.launcherBusy
+    }
     function keepOpen() {
         open = true
         linger.interval = 1600
@@ -340,7 +443,8 @@ PanelWindow {
             required property var modelData
             required property int index
             readonly property real d: Math.abs(index - sw.camRow)
-            x: 0
+            // Slides in from the left with the strip instead of appearing under the pill.
+            x: sw.labelW * sw.v * sw.e - sw.labelW * sw.v
             width: sw.labelW - 6
             horizontalAlignment: Text.AlignRight
             y: sw.pillCY + sw.rowY(index - sw.camRow) - height / 2
@@ -358,17 +462,15 @@ PanelWindow {
     // ---- strip ----
     Item {
         id: strip
-        x: sw.labelW * sw.v
+        x: sw.labelW * sw.v * sw.e
         y: 0
         width: Math.max(0, sw.panelW - x - 6)
         height: sw.height
         clip: true
-        opacity: sw.e
-        visible: opacity > 0
 
         Item {
             id: world
-            x: sw.pillCX - strip.x
+            x: sw.pillLeft - strip.x
             y: sw.pillCY
 
             // Empty workspaces: a faint placeholder where their tiles would be.
@@ -387,7 +489,7 @@ PanelWindow {
                     color: "transparent"
                     border.width: 1
                     border.color: "#3a4468"
-                    opacity: sw.rowFade(Math.abs(index - sw.camRow))
+                    opacity: sw.rowFade(Math.abs(index - sw.camRow)) * sw.e
                 }
             }
 
@@ -397,93 +499,97 @@ PanelWindow {
                     id: tile
                     required property int uid
                     readonly property var t: sw.scene.tiles[uid] || null
-                    property bool placed: false
-                    Component.onCompleted: Qt.callLater(() => placed = true)
-                    // While niri drives a view every frame, follow it directly; ease only
-                    // discrete jumps (e.g. a focus change that doesn't move the camera).
-                    readonly property bool live: sw.viewLive || (t !== null && NiriViewService.moving(NiriViewService.columnViews[t.ws]))
-                    readonly property bool animate: placed && !live
-                    x: t ? t.x : 0
-                    // Row position animates on its own, so a window moved to another
-                    // workspace travels between rows.
-                    property real rowPos: t ? t.row : 0
-                    property real yoff: t ? t.yoff : 0
-                    Behavior on rowPos {
-                        enabled: tile.animate
+                    // Driven values (focus, open, niri's camera) are followed directly. Only
+                    // layout changes (a window moving to another column/row/workspace,
+                    // neighbours opening or closing) animate, by easing out the jump.
+                    property real dx: 0
+                    property real dyo: 0
+                    property real dw: 0
+                    property real dh: 0
+                    property real drow: 0
+                    property string slot: ""
+                    property var last: null
+                    onTChanged: {
+                        if (!t) {
+                            last = null
+                            return
+                        }
+                        const key = t.ws + ":" + t.col + ":" + t.r + ":" + t.k
+                        if (last && key !== slot) {
+                            dx += last.x - t.x
+                            dyo += last.yoff - t.yoff
+                            dw += last.w - t.w
+                            dh += last.h - t.h
+                            drow += last.row - t.row
+                            flip.restart()
+                        }
+                        slot = key
+                        last = t
+                    }
+                    ParallelAnimation {
+                        id: flip
                         NumberAnimation {
+                            target: tile
+                            property: "dx"
+                            to: 0
+                            duration: sw.motion
+                            easing.type: Easing.InOutCubic
+                        }
+                        NumberAnimation {
+                            target: tile
+                            property: "dyo"
+                            to: 0
+                            duration: sw.motion
+                            easing.type: Easing.InOutCubic
+                        }
+                        NumberAnimation {
+                            target: tile
+                            property: "dw"
+                            to: 0
+                            duration: sw.motion
+                            easing.type: Easing.InOutCubic
+                        }
+                        NumberAnimation {
+                            target: tile
+                            property: "dh"
+                            to: 0
+                            duration: sw.motion
+                            easing.type: Easing.InOutCubic
+                        }
+                        NumberAnimation {
+                            target: tile
+                            property: "drow"
+                            to: 0
                             duration: sw.motion
                             easing.type: Easing.InOutCubic
                         }
                     }
-                    Behavior on yoff {
-                        enabled: tile.animate
-                        NumberAnimation {
-                            duration: sw.motion
-                            easing.type: Easing.InOutCubic
-                        }
-                    }
-                    y: sw.rowY(rowPos - sw.camRow) + yoff
-                    width: t ? t.w : 0
-                    height: t ? t.h : 0
-                    Behavior on x {
-                        enabled: tile.animate
-                        NumberAnimation {
-                            duration: sw.motion
-                            easing.type: Easing.InOutCubic
-                        }
-                    }
-                    Behavior on width {
-                        enabled: tile.animate
-                        NumberAnimation {
-                            duration: sw.motion
-                            easing.type: Easing.InOutCubic
-                        }
-                    }
-                    Behavior on height {
-                        enabled: tile.animate
-                        NumberAnimation {
-                            duration: sw.motion
-                            easing.type: Easing.InOutCubic
-                        }
-                    }
+                    x: t ? t.x + dx : 0
+                    readonly property real rowPos: t ? t.row + drow : 0
+                    y: sw.rowY(rowPos - sw.camRow) + (t ? t.yoff : 0) + dyo
+                    width: t ? Math.max(0, t.w + dw) : 0
+                    height: t ? Math.max(0, t.h + dh) : 0
                     // Fade by row distance, column distance and the strip edges.
                     readonly property real rowD: Math.abs(rowPos - sw.camRow)
-                    property real colFade: t ? Math.max(0.3, 1 - 0.2 * Math.max(0, Math.abs(t.cd) - 1)) : 0
-                    Behavior on colFade {
-                        enabled: tile.animate
-                        NumberAnimation {
-                            duration: sw.motion
-                        }
-                    }
+                    readonly property real colFade: t ? Math.max(0.3, 1 - 0.2 * Math.max(0, Math.abs(t.cd) - 1)) : 0
                     // 0 = small box, 1 = expanded into the pill (icon slides left, title appears).
-                    property real pp: t ? t.pp : 0
-                    Behavior on pp {
-                        enabled: tile.animate
-                        NumberAnimation {
-                            duration: sw.motion
-                            easing.type: Easing.InOutCubic
-                        }
-                    }
-                    property real slotFade: t ? 1 - t.hide : 1
-                    Behavior on slotFade {
-                        enabled: tile.animate
-                        NumberAnimation {
-                            duration: 200
-                        }
-                    }
+                    readonly property real pp: t ? t.pp : 0
+                    readonly property real slotFade: t ? 1 - t.hide : 1
+                    // At rest only the pill shows (unless the resting pill stands in for it).
+                    readonly property real restFade: sw.e + (1 - sw.e) * pp * (1 - sw.overlayOn)
                     readonly property real leftX: world.x + x
                     // Tiles fade as they scroll off the strip's edges; the focused pill never
                     // does (with no columns to its left it sits right at the left edge).
                     readonly property real edgeFade: {
-                        const f = Math.max(0, Math.min(1, leftX / sw.edgePad)) * Math.max(0, Math.min(1, (strip.width - leftX - width) / 28))
+                        const f = Math.max(0, Math.min(1, 1 + leftX / sw.edgePad)) * Math.max(0, Math.min(1, (strip.width - leftX - width) / 28))
                         return f + (1 - f) * pp
                     }
-                    opacity: t ? sw.rowFade(rowD) * colFade * slotFade * edgeFade : 0
+                    opacity: t ? sw.rowFade(rowD) * colFade * slotFade * edgeFade * restFade : 0
                     visible: t !== null && opacity > 0.01
                     radius: 6 + (Theme.closedRadius - 6) * pp
                     color: sw.mix(sw.tileFill, sw.pillFill, pp)
                     border.width: 1
-                    border.color: sw.mix(sw.tileBorder, sw.pillBorder, pp)
+                    border.color: sw.mix(sw.tileBorder, sw.mix(sw.restBorder, sw.pillBorder, sw.e), pp)
                     IconImage {
                         readonly property real small: Math.max(1, Math.min(16, Math.min(tile.width, tile.height) - 6))
                         implicitSize: small + (sw.pillIcon - small) * tile.pp
@@ -509,21 +615,20 @@ PanelWindow {
         }
     }
 
-    // ---- resting pill ----
-    // At rest this is the module. While expanded, the focused tile in the strip
-    // *is* the pill (same geometry and content), so this one fades out; it stays
-    // when the current workspace is empty.
-    property real holdOverlay: open && !shownWin ? 1 : 0
-    Behavior on holdOverlay {
+    // ---- stand-in pill ----
+    // The focused tile is the pill, at rest and open. This one only stands in when
+    // there is no such tile: an empty workspace, or a floating/off-workspace window.
+    property real overlayOn: pillIsTile ? 0 : 1
+    Behavior on overlayOn {
         NumberAnimation {
-            duration: 200
+            duration: 150
         }
     }
     Rectangle {
         id: pill
-        opacity: Math.max(sw.holdOverlay, Math.min(1, (1 - sw.e) / 0.2))
+        opacity: sw.overlayOn
         visible: (sw.shownTitle.length > 0 || sw.e > 0) && opacity > 0.01
-        x: sw.pillCX - width / 2
+        x: sw.pillLeft
         y: sw.pillCY - height / 2
         width: sw.pillW
         height: sw.pillH
@@ -564,3 +669,4 @@ PanelWindow {
         return Qt.rgba(a.r + (b.r - a.r) * p, a.g + (b.g - a.g) * p, a.b + (b.b - a.b) * p, a.a + (b.a - a.a) * p)
     }
 }
+
