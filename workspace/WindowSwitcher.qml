@@ -21,16 +21,19 @@ PanelWindow {
     readonly property int tileH: 22
     readonly property int tileGap: 6
     readonly property int pillGap: 8           // pill slot <-> neighbouring tiles
-    readonly property int sideRoom: 116        // max strip visible left of the pill
-    readonly property int edgePad: 12          // tiles fade over this much past the strip's left edge
+    // Max strip visible left of the pill: what the panel has left after the pill and
+    // a little room on its right, so the pill travels before the strip scrolls.
+    readonly property real sideRoom: Math.max(116, panelW - labelW * v - openPillW - 90)
+    readonly property int edgePad: 24          // tiles fade over this much past the strip's left edge
     // Label column fits the widest label; labels are right-aligned against the tiles.
     readonly property real labelW: Math.ceil(Math.max(0, ...rows.map(w => labelMetrics.advanceWidth(NiriService.wsLabel(w.id))))) + 15
-    // Room left of the pill: only as much as the columns left of the focus take,
-    // so the first column sits at the edge with no empty gap. It follows the
-    // (animated) focus position, so it only eases on layout changes.
+    // Room left of the pill: only as much as the columns left of the focus take
+    // (in any visible row), so the first column sits at the edge with no empty gap.
+    // Those columns have no width at rest and grow with the opening, so this follows
+    // the opening and the focus by itself and only eases on layout changes.
     property real leftRoom: Math.min(sideRoom, scene.leftNeed)
     Behavior on leftRoom {
-        enabled: !sw.focusDriven
+        enabled: !sw.focusDriven && sw.e >= 1
         NumberAnimation {
             duration: sw.motion
             easing.type: Easing.InOutCubic
@@ -147,25 +150,7 @@ PanelWindow {
         return win ? (win.title || win.app_id || "") : ""
     }
     readonly property real pillW: pillWidthFor(shownTitle)
-    // The left room counts from where the strip was when it started opening or
-    // closing (restLeft), so columns at the module's left edge stay there and only
-    // the focus travels, even when focus moves while the switcher opens.
-    // The rest offset settles faster than the opening itself, so a column that has
-    // to enter from the left is in place before it has faded in.
-    readonly property real pillLeft: Math.max(0, labelW * v * e + leftRoom - Math.pow(1 - e, 3) * restLeft)
-    property real restSnap: 0
-    property bool restFrozen: false
-    readonly property real restLeft: restFrozen ? restSnap : leftRoom
-    onOpenChanged: {
-        // Opening: keep where the strip is now (at rest: the current left room).
-        // Closing: settle so that at rest the pill is back at the module's edge.
-        restSnap = open ? restLeft : leftRoom
-        restFrozen = true
-    }
-    onEChanged: {
-        if (!open && e <= 0)
-            restFrozen = false
-    }
+    readonly property real pillLeft: labelW * v * e + leftRoom
     readonly property real pillCY: pillH / 2 + Math.min(1, camRow) * lift * e * v
     // Vertical offset of a row `d` rows away from the camera (fractional while moving).
     function rowY(d) {
@@ -239,12 +224,17 @@ PanelWindow {
     }
     function syncFocus() {
         const n = curCols.length
-        if (niriDrives && n) {
+        const pos = n && curView ? Math.max(0, Math.min(n - 1, curView.position)) : curFc
+        if (curWs !== focusWs) {
+            // Another workspace: no focus travel.
             focusAnim.stop()
-            focusF = Math.max(0, Math.min(n - 1, curView.position))
-        } else if (curWs !== focusWs || shownId === focusWin) {
-            // Another workspace, or the same window moved: no focus travel.
-            focusAnim.stop()
+            focusF = curFc
+        } else if (niriDrives && n && !focusAnim.running && Math.abs(pos - focusF) < 0.35) {
+            // niri's camera is moving: follow it frame by frame. (When niri jumps
+            // instead, e.g. both columns already in view, ease there ourselves.)
+            focusF = pos
+        } else if (shownId === focusWin && !focusAnim.running && !niriDrives && Math.abs(curFc - focusF) > 1e-3) {
+            // The same window moved to another column: its tiles animate that.
             focusF = curFc
         } else if (Math.abs(curFc - focusF) > 1e-3 && !(focusAnim.running && focusAnim.to === curFc)) {
             focusAnim.stop()
@@ -290,19 +280,24 @@ PanelWindow {
             const f = !n ? 0 : isCur && focusWs === curWs ? clampF(focusF) : NiriViewService.moving(cv) ? clampF(cv.position) : fc
             const colW = c => c >= 0 && c < n ? clamp01(1 - Math.abs(c - f)) * rowW : 0
             const pillIdOf = (c, wgt) => wgt > 0 ? (cols[c].some(t => t.id === anchorId) ? anchorId : cols[c][0].id) : -1
+            // Columns away from the focus have no width at rest and grow as it opens.
+            const grow = c => c >= 0 && c < n ? e + (1 - e) * colW(c) : 0
+            const boxes = cols.map(col => tileWidth(Math.max(...col.map(t => t.w))))
             const widths = cols.map((col, c) => {
-                const b = tileWidth(Math.max(...col.map(t => t.w)))
-                const wgt = colW(c)
-                return wgt > 0 ? b + (pillWidthFor(titleOf(wins[pillIdOf(c, wgt)])) - b) * wgt : b
+                const b = boxes[c], wgt = colW(c)
+                return (wgt > 0 ? b + (pillWidthFor(titleOf(wins[pillIdOf(c, wgt)])) - b) * wgt : b) * grow(c)
             })
+            const gapAfter = c => (tileGap + (pillGap - tileGap) * Math.max(colW(c), colW(c + 1))) * Math.min(grow(c), grow(c + 1))
             const lefts = []
             let x = 0
             for (let c = 0; c < n; c++) {
                 lefts.push(x)
-                x += widths[c] + tileGap + (pillGap - tileGap) * Math.max(colW(c), colW(c + 1))
+                x += widths[c] + gapAfter(c)
             }
-            const f0 = Math.floor(f), f1 = Math.min(n - 1, f0 + 1)
-            const shift = n ? lefts[f0] + (lefts[f1] - lefts[f0]) * (f - f0) : 0
+            // The strip scrolls by box widths, not the morphing pill widths, so it moves
+            // steadily one way (no overshoot while a pill shrinks into a box).
+            const f0 = Math.floor(f)
+            const shift = n ? lefts[f0] + (boxes[f0] * grow(f0) + gapAfter(f0)) * (f - f0) : 0
             for (let c = 0; c < n; c++) {
                 const col = cols[c], k = col.length, wgt = colW(c)
                 const h0 = (tileH - 2 * (k - 1)) / k
@@ -327,8 +322,9 @@ PanelWindow {
                     }
                 }
             }
-            if (isCur)
-                leftNeed = shift
+            // Every visible row needs its left columns in view, not just the current one.
+            const vis = isCur ? 1 : v * clamp01(2 - Math.abs(i - camRow))
+            leftNeed = Math.max(leftNeed, shift * vis)
             rowInfo.push({
                 id: ws.id,
                 cols: n,
