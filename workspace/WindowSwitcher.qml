@@ -117,17 +117,6 @@ PanelWindow {
     onShownIdChanged: {
         if (shownId >= 0 && focusedWin && shownId === focusedWin.id)
             lastId = shownId
-        // The HUD opens ~70ms after niri's event; wait briefly so the change
-        // slides in the open pill instead of snapping in the resting one.
-        if (open)
-            face.swap()
-        else
-            swapLater.restart()
-    }
-    Timer {
-        id: swapLater
-        interval: 110
-        onTriggered: face.swap()
     }
     readonly property var shownWin: NiriService.windows[shownId] || null
     readonly property string shownTitle: shownWin ? (shownWin.title || shownWin.app_id || "") : (open ? "Empty workspace" : "")
@@ -216,18 +205,22 @@ PanelWindow {
             for (let c = 0; c < cols.length; c++) {
                 const col = cols[c], n = col.length
                 const h = (tileH - 2 * (n - 1)) / n
-                for (let r = 0; r < n; r++)
+                const pillId = isCur && c === fc ? (col.some(t => t.id === shownId) ? shownId : col[0].id) : -1
+                for (let r = 0; r < n; r++) {
+                    const isPill = col[r].id === pillId
                     tiles[col[r].id] = {
                         ws: ws.id,
                         row: i,
                         cd: c - fc,
-                        pill: isCur && c === fc,
+                        pill: isPill,
+                        hidden: pillId >= 0 && !isPill,
                         app: col[r].app,
                         x: lefts[c] - shift,
-                        yoff: -tileH / 2 + r * (h + 2),
+                        yoff: isPill ? -pillH / 2 : -tileH / 2 + r * (h + 2),
                         w: widths[c],
-                        h: h
+                        h: isPill ? pillH : h
                     }
+                }
             }
             if (isCur && cols.length > 1)
                 leftNeed = cols.slice(0, -1).reduce((sum, col) => sum + tileWidth(Math.max(...col.map(t => t.w))), 0) + tileGap * (cols.length - 2) + pillGap
@@ -280,10 +273,6 @@ PanelWindow {
             const k = WorkspaceController.hudKind
             sw.setVertical(k === "switch" || k === "move")
             sw.open = true
-            if (swapLater.running) {
-                swapLater.stop()
-                face.swap()
-            }
             linger.interval = WorkspaceController.hudKind === "move" ? 2400 : 1600
             linger.restart()
         }
@@ -501,7 +490,16 @@ PanelWindow {
                             duration: sw.motion
                         }
                     }
-                    property real slotFade: t && t.pill ? 0 : 1
+                    // 0 = small box, 1 = expanded into the pill (icon slides left, title appears).
+                    property real pp: t && t.pill ? 1 : 0
+                    Behavior on pp {
+                        enabled: tile.animate
+                        NumberAnimation {
+                            duration: sw.motion
+                            easing.type: Easing.InOutCubic
+                        }
+                    }
+                    property real slotFade: t && t.hidden ? 0 : 1
                     Behavior on slotFade {
                         enabled: tile.animate
                         NumberAnimation {
@@ -512,178 +510,87 @@ PanelWindow {
                     readonly property real edgeFade: Math.max(0, Math.min(1, leftX / sw.edgePad)) * Math.max(0, Math.min(1, (strip.width - leftX - width) / 28))
                     opacity: t ? sw.rowFade(rowD) * colFade * slotFade * edgeFade : 0
                     visible: t !== null && opacity > 0.01
-                    radius: 6
-                    color: "#2a3352"
+                    radius: 6 + (Theme.closedRadius - 6) * pp
+                    color: sw.mix(sw.tileFill, sw.pillFill, pp)
                     border.width: 1
-                    border.color: Qt.rgba(0.56, 0.66, 1, 0.75)
+                    border.color: sw.mix(sw.tileBorder, sw.pillBorder, pp)
                     IconImage {
-                        anchors.centerIn: parent
-                        implicitSize: Math.max(1, Math.min(16, Math.min(tile.width, tile.height) - 6))
+                        readonly property real small: Math.max(1, Math.min(16, Math.min(tile.width, tile.height) - 6))
+                        implicitSize: small + (sw.pillIcon - small) * tile.pp
+                        x: (tile.width - implicitSize) / 2 * (1 - tile.pp) + sw.pillPad * tile.pp
+                        anchors.verticalCenter: parent.verticalCenter
                         source: tile.t ? NiriService.iconFor(tile.t.app) : ""
+                    }
+                    Text {
+                        visible: tile.pp > 0.01
+                        x: sw.pillTextX
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Math.max(0, tile.width - x - 12)
+                        opacity: tile.pp * tile.pp * tile.pp
+                        readonly property var win: NiriService.windows[tile.uid] || null
+                        text: win ? (win.title || win.app_id || "") : ""
+                        color: "#c7d2ff"
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 14
+                        elide: Text.ElideRight
                     }
                 }
             }
         }
     }
 
-    // ---- the pill ----
+    // ---- resting pill ----
+    // At rest this is the module. While expanded, the focused tile in the strip
+    // *is* the pill (same geometry and content), so this one fades out; it stays
+    // when the current workspace is empty.
+    property real holdOverlay: open && !shownWin ? 1 : 0
+    Behavior on holdOverlay {
+        NumberAnimation {
+            duration: 200
+        }
+    }
     Rectangle {
         id: pill
-        visible: sw.shownTitle.length > 0 || sw.e > 0
+        opacity: Math.max(sw.holdOverlay, Math.min(1, (1 - sw.e) / 0.2))
+        visible: (sw.shownTitle.length > 0 || sw.e > 0) && opacity > 0.01
         x: sw.pillCX - width / 2
         y: sw.pillCY - height / 2
         width: sw.pillW
         height: sw.pillH
         radius: Theme.closedRadius
-        color: "#f0121620"
+        color: sw.pillFill
         border.width: 1
-        border.color: Qt.rgba(0.62 + 0.25 * sw.e, 0.68 + 0.2 * sw.e, 0.86 + 0.1 * sw.e, 0.3 + 0.45 * sw.e)
+        border.color: sw.mix(sw.restBorder, sw.pillBorder, sw.e)
         clip: true
-
-        Item {
-            id: face
-            anchors.fill: parent
-            // Two layers: the outgoing face slides out as the incoming one slides
-            // in — horizontally for a focus move, vertically for a workspace change.
-            property int front: 0
-            property int lastRow: sw.curIndex
-            property int lastCol: 0
-            function swap() {
-                const row = sw.curIndex
-                const info = sw.scene.rows[row]
-                const col = info ? info.fc : 0
-                let dx = 0, dy = 0
-                if (row !== lastRow)
-                    dy = row > lastRow ? 1 : -1
-                else
-                    dx = col > lastCol ? 1 : col < lastCol ? -1 : 0
-                lastRow = row
-                lastCol = col
-                const a = front === 0 ? faceA : faceB, b = front === 0 ? faceB : faceA
-                b.wid = sw.shownId
-                b.emptyText = sw.shownTitle
-                if (sw.e < 0.01 || (dx === 0 && dy === 0)) {
-                    slide.stop()
-                    a.opacity = 0
-                    b.opacity = 1
-                    b.ox = 0
-                    b.oy = 0
-                } else {
-                    slide.stop()
-                    outX.target = a
-                    outY.target = a
-                    outO.target = a
-                    inX.target = b
-                    inY.target = b
-                    inO.target = b
-                    outX.to = -dx * 28
-                    outY.to = -dy * 18
-                    inX.from = dx * 28
-                    inY.from = dy * 18
-                    slide.start()
-                }
-                front = 1 - front
-            }
-            ParallelAnimation {
-                id: slide
-                NumberAnimation {
-                    id: outX
-                    property: "ox"
-                    from: 0
-                    duration: sw.motion
-                    easing.type: Easing.InOutCubic
-                }
-                NumberAnimation {
-                    id: outY
-                    property: "oy"
-                    from: 0
-                    duration: sw.motion
-                    easing.type: Easing.InOutCubic
-                }
-                NumberAnimation {
-                    id: outO
-                    property: "opacity"
-                    from: 1
-                    to: 0
-                    duration: sw.motion * 0.6
-                }
-                NumberAnimation {
-                    id: inX
-                    property: "ox"
-                    to: 0
-                    duration: sw.motion
-                    easing.type: Easing.InOutCubic
-                }
-                NumberAnimation {
-                    id: inY
-                    property: "oy"
-                    to: 0
-                    duration: sw.motion
-                    easing.type: Easing.InOutCubic
-                }
-                NumberAnimation {
-                    id: inO
-                    property: "opacity"
-                    from: 0
-                    to: 1
-                    duration: sw.motion
-                }
-            }
-            Component.onCompleted: {
-                faceA.wid = sw.shownId
-                faceA.emptyText = sw.shownTitle
-                faceA.opacity = 1
-                faceB.opacity = 0
-            }
-            Face {
-                id: faceA
-            }
-            Face {
-                id: faceB
-            }
-        }
-    }
-
-    component Face: Item {
-        id: f
-        property int wid: -1
-        property string emptyText: ""
-        property real ox: 0
-        property real oy: 0
-        readonly property var win: NiriService.windows[wid] || null
-        width: pill.width
-        height: pill.height
-        transform: Translate {
-            x: f.ox
-            y: f.oy
-        }
-        Rectangle {
-            id: chip
-            x: 12
+        IconImage {
+            visible: sw.shownWin !== null
+            x: sw.pillPad
             anchors.verticalCenter: parent.verticalCenter
-            width: 22
-            height: 22
-            radius: 6
-            visible: f.win !== null
-            color: "#2a3352"
-            border.width: 1
-            border.color: Qt.rgba(0.56, 0.66, 1, 0.75)
-            IconImage {
-                anchors.centerIn: parent
-                implicitSize: 16
-                source: f.win ? NiriService.iconFor(f.win.app_id) : ""
-            }
+            implicitSize: sw.pillIcon
+            source: sw.shownWin ? NiriService.iconFor(sw.shownWin.app_id) : ""
         }
         Text {
-            id: label
-            x: f.win ? 42 : 14
+            x: sw.shownWin ? sw.pillTextX : sw.pillPad
             anchors.verticalCenter: parent.verticalCenter
-            width: Math.max(0, f.width - x - 12)
-            text: f.win ? (f.win.title || f.win.app_id || "") : (f.wid === sw.shownId ? sw.shownTitle : f.emptyText)
-            color: f.win ? "#c7d2ff" : Theme.muted
+            width: Math.max(0, pill.width - x - 12)
+            text: sw.shownTitle
+            color: sw.shownWin ? "#c7d2ff" : Theme.muted
             font.family: Theme.fontFamily
             font.pixelSize: 14
             elide: Text.ElideRight
         }
+    }
+
+    // ---- shared pill/tile styling ----
+    readonly property int pillPad: 14
+    readonly property int pillIcon: 18
+    readonly property int pillTextX: pillPad + pillIcon + 10
+    readonly property color tileFill: Qt.rgba(0x2a / 255, 0x33 / 255, 0x52 / 255, 1)
+    readonly property color tileBorder: Qt.rgba(0.56, 0.66, 1, 0.75)
+    readonly property color pillFill: Qt.rgba(0x12 / 255, 0x16 / 255, 0x20 / 255, 0xf0 / 255)
+    readonly property color pillBorder: Qt.rgba(0.87, 0.88, 0.96, 0.75)
+    readonly property color restBorder: Qt.rgba(0.62, 0.68, 0.86, 0.3)
+    function mix(a, b, p) {
+        return Qt.rgba(a.r + (b.r - a.r) * p, a.g + (b.g - a.g) * p, a.b + (b.b - a.b) * p, a.a + (b.a - a.a) * p)
     }
 }
