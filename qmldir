@@ -26,7 +26,6 @@ IpcEndpoints core/IpcEndpoints.qml
 Island island/Island.qml
 singleton HeliumService services/HeliumService.qml
 singleton IslandController core/IslandController.qml
-WindowTitlePill bar/WindowTitlePill.qml
 AddressMenu menus/AddressMenu.qml
 HoverFocus components/HoverFocus.qml
 HeliumView island/views/HeliumView.qml
@@ -53,8 +52,7 @@ singleton WifiService services/WifiService.qml
 ClockView island/views/ClockView.qml
 WindowsMenu menus/WindowsMenu.qml
 singleton WorkspaceController core/WorkspaceController.qml
-WorkspaceHud workspace/WorkspaceHud.qml
-WorkspaceMap workspace/WorkspaceMap.qml
+WindowSwitcher workspace/WindowSwitcher.qml
 IslandHandoff components/IslandHandoff.qml
 IslandMorph components/IslandMorph.qml
 BatteryIndicator components/BatteryIndicator.qml

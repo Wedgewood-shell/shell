@@ -7,9 +7,13 @@ ShellRoot {
     readonly property var integration: Integration
     IpcEndpoints {}
     MenuWindow {}
-    WorkspaceHud {}
     Variants {
         model: Quickshell.screens
         Bar {}
+    }
+    // Left module: focused window + window/workspace switcher.
+    Variants {
+        model: Quickshell.screens
+        WindowSwitcher {}
     }
 }

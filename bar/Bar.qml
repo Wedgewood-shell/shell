@@ -21,16 +21,12 @@ PanelWindow {
     exclusiveZone: 50
     color: "transparent"
 
-    // ---- left: focused window ----
-    WindowTitlePill {
-        anchors.left: parent.left
-        maxWidth: Math.min(Theme.windowTitleMaxWidth, Math.max(0, bar.width / 2 - (IslandController.baseMode === "helium" ? Theme.islandHeliumWidth : Theme.islandBaseWidth) / 2 - 24))
-    }
+    // Left: focused window / switcher lives in WindowSwitcher (its own surface).
 
     // ---- center: dynamic island ----
     Island {
         anchors.horizontalCenter: parent.horizontalCenter
-        opacity: (OverlayController.launcherBusy && OverlayController.launcherScreen === bar.modelData.name) || (WorkspaceController.hudBusy && WorkspaceController.hudScreen === bar.modelData.name) ? 0 : 1
+        opacity: (OverlayController.launcherBusy && OverlayController.launcherScreen === bar.modelData.name) ? 0 : 1
         Behavior on opacity {
             NumberAnimation {
                 duration: Theme.islandFadeDuration

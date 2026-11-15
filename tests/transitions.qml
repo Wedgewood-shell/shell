@@ -16,8 +16,9 @@ ShellRoot {
         id: menu
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     }
-    WorkspaceHud {
+    WindowSwitcher {
         id: hud
+        modelData: Quickshell.screens[0]
     }
 
     function check(condition, message) {
@@ -138,18 +139,12 @@ ShellRoot {
                     later(120)
                     break
                 case 5:
-                    test.check(hud.visible && WorkspaceController.hudBusy, "HUD covers base after presenting")
+                    test.check(hud.open && hud.vertical, "workspace switch opens the switcher in vertical mode")
                     hud.open = false
                     later(430)
                     break
                 case 6:
-                    test.check(hud.visible, "collapsed HUD stays mapped while base returns")
-                    test.check(hud.closedWidth === 400, "HUD returns to the measured bar width")
-                    test.check(!WorkspaceController.hudBusy, "base is released after HUD morph")
-                    later(700)
-                    break
-                case 7:
-                    test.check(!hud.visible && !WorkspaceController.hudBusy, "HUD unmaps after complete handoff")
+                    test.check(hud.e === 0, "switcher returns to the resting pill")
                     console.log("TRANSITIONS PASS: " + test.assertions + " assertions")
                     Qt.quit()
                 }
