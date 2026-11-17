@@ -57,3 +57,4 @@ WindowSwitcher workspace/WindowSwitcher.qml
 IslandHandoff components/IslandHandoff.qml
 IslandMorph components/IslandMorph.qml
 BatteryIndicator components/BatteryIndicator.qml
+VoiceView island/views/VoiceView.qml

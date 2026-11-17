@@ -154,6 +154,17 @@ quickshell ipc call launcher session
 quickshell ipc call launcher camera
 ```
 
+Voice conversation (ephemeral island state `voice`, driven by the `ttsd` / `sttd` user services):
+
+```sh
+quickshell ipc call voice say "text"            # assistant speaking; long text scrolls
+quickshell ipc call voice sayEnd
+quickshell ipc call voice startListening        # user's reply: live transcript follows
+quickshell ipc call voice partial "text so far"
+quickshell ipc call voice finish "text" ok      # status: ok | nopi; empty text = nothing heard
+quickshell ipc call voice idle
+```
+
 Existing preview hooks also remain: `launcher btfake`, `launcher newdisplay`,
 `island network <kind>`, `island brightness`, `island battery`, `island volume`,
 and `island bluetooth`.

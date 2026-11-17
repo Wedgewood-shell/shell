@@ -12,6 +12,7 @@ Pill {
     implicitWidth: {
         switch (IslandController.islandMode) {
         case "helium":
+        case "voice":
             return Theme.islandHeliumWidth
         case "volume":
             return volume.implicitWidth + 36
@@ -40,6 +41,10 @@ Pill {
     }
     HeliumView {
         id: helium
+        anchors.fill: parent
+    }
+    VoiceView {
+        id: voice
         anchors.fill: parent
     }
     Canvas {

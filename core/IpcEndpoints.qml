@@ -35,6 +35,28 @@ Scope {
     }
 
     IpcHandler {
+        target: "voice"
+        function say(text: string): void {
+            IslandController.voiceSay(text)
+        }
+        function sayEnd(): void {
+            IslandController.voiceSayEnd()
+        }
+        function startListening(): void {
+            IslandController.voiceListen()
+        }
+        function partial(text: string): void {
+            IslandController.voicePartial(text)
+        }
+        function finish(text: string, status: string): void {
+            IslandController.voiceFinal(text, status)
+        }
+        function idle(): void {
+            IslandController.voiceEnd()
+        }
+    }
+
+    IpcHandler {
         target: "launcher"
         // Ctrl+L: open the Helium address editor. Returns false when no Helium
         // window is focused so the caller can pass the key through.
