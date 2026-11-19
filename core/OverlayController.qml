@@ -9,6 +9,7 @@ Singleton {
     // ---- launcher ----
     property bool launcherOpen: false
     property bool launcherBusy: false   // true while the launcher pill is open or still shrinking back
+    property bool launcherMapped: false // the menu surface is still on screen (it unmaps after the hand-off)
     property string launcherScreen: ""
     property var islandWidths: ({})          // per-screen, keyed by output name
     function setIslandWidth(name, w) {

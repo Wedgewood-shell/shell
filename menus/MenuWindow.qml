@@ -22,6 +22,7 @@ PanelWindow {
     readonly property real closedWidth: OverlayController.islandWidths[screen ? screen.name : OverlayController.launcherScreen] ?? 300
     screen: Quickshell.screens.find(s => s.name === OverlayController.launcherScreen) ?? Quickshell.screens[0]
     visible: open || handoff.retained
+    onVisibleChanged: OverlayController.launcherMapped = visible
     color: "transparent"
     anchors.top: true
     margins.top: Theme.topMargin
