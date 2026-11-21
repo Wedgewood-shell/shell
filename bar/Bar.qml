@@ -186,7 +186,7 @@ PanelWindow {
                         color: Theme.text
                         font.family: Theme.fontFamily
                         font.features: Theme.tabularFigures
-                        font.pixelSize: 14
+                        font.pixelSize: Theme.barFontSize
                         font.weight: Font.DemiBold
                     }
                 }

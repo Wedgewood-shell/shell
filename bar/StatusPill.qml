@@ -14,18 +14,21 @@ Pill {
         spacing: 21
 
         IconLabel {
+            font.pixelSize: Theme.barFontSize
             visible: SystemService.showCpu
             anchors.verticalCenter: parent.verticalCenter
             text: SystemService.cpuUsage + "%"
             color: Theme.warning
         }
         IconLabel {
+            font.pixelSize: Theme.barFontSize
             visible: SystemService.showMem
             anchors.verticalCenter: parent.verticalCenter
             text: Theme.cp(0xF035B) + " " + SystemService.memUsage + "%"
             color: Theme.warning
         }
         IconLabel {
+            font.pixelSize: Theme.barFontSize
             visible: SystemService.showTemp
             anchors.verticalCenter: parent.verticalCenter
             text: (SystemService.tempC >= 90 ? Theme.cp(0xF0E01) : Theme.cp(0xF050F)) + " " + SystemService.tempC + "°"
@@ -41,6 +44,7 @@ Pill {
                 color: NetworkService.netKind === "none" ? Theme.danger : NetworkService.noInternet ? Theme.warning : Theme.foreground
             }
             IconLabel {
+            font.pixelSize: Theme.barFontSize
                 visible: NetworkService.noInternet
                 anchors.verticalCenter: parent.verticalCenter
                 text: "!"
