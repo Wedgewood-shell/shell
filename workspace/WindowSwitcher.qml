@@ -153,7 +153,8 @@ PanelWindow {
     // make room for labels and left neighbours, and down so up to two rows above fit.
     // At rest a pill fits its title; open, every pill is openPillW wide.
     function pillWidthFor(title) {
-        const rest = Math.max(54, Math.min(idleMax, titleFont.advanceWidth(title) + 54))
+        const chrome = pillTextX + pillPad    // icon + gap on the left, padding on the right
+        const rest = Math.max(chrome, Math.min(idleMax, titleFont.advanceWidth(title) + chrome))
         // Rounded up to whole pixels: rounding down would elide a title that just fits.
         const w = rest + (openPillW - rest) * e
         return Math.ceil(w * devicePixelRatio - 1e-6) / devicePixelRatio
@@ -608,7 +609,7 @@ PanelWindow {
                             visible: tile.pp > 0.01
                             x: sw.pillTextX
                             anchors.verticalCenter: parent.verticalCenter
-                            width: Math.max(0, tile.width - x - 12)
+                            width: Math.max(0, tile.width - x - sw.pillPad)
                             opacity: tile.pp * tile.pp * tile.pp
                             readonly property var win: NiriService.windows[tile.uid] || null
                             text: win ? (win.title || win.app_id || "") : ""
@@ -648,7 +649,7 @@ PanelWindow {
             Text {
                 x: sw.shownWin ? sw.pillTextX : sw.pillPad
                 anchors.verticalCenter: parent.verticalCenter
-                width: Math.max(0, pill.width - x - 12)
+                width: Math.max(0, pill.width - x - sw.pillPad)
                 text: sw.shownTitle
                 color: sw.shownWin ? Theme.text : Theme.muted
                 font.family: Theme.fontFamily
@@ -660,8 +661,10 @@ PanelWindow {
     }
 
     // ---- shared pill/tile styling ----
-    readonly property int pillPad: 14
     readonly property int pillIcon: 18
+    // Horizontal padding equals the icon's vertical gap (the centred icon's top lands
+    // on a whole logical pixel, so that gap is the floor).
+    readonly property int pillPad: Math.floor((pillH - pillIcon) / 2)
     readonly property int pillTextX: pillPad + pillIcon + 10
     readonly property color tileFill: Theme.raised
     readonly property color tileBorder: Theme.alpha(Theme.highlight, 0.75)
