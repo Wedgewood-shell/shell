@@ -11,7 +11,7 @@ Pill {
     Row {
         id: status
         anchors.centerIn: parent
-        spacing: 14
+        spacing: 21
 
         IconLabel {
             anchors.verticalCenter: parent.verticalCenter
