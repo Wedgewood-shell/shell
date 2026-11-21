@@ -25,22 +25,14 @@ Pill {
     implicitHeight: Theme.px(Theme.barHeight, dpr)
     implicitWidth: Theme.pxEven(baseWidth, dpr)
     readonly property real baseWidth: {
+        if (alert.active)
+            return alert.targetWidth + 36
         switch (IslandController.islandMode) {
         case "helium":
         case "voice":
             return Theme.islandHeliumWidth
         case "media":
             return Theme.islandMediaWidth
-        case "volume":
-            return volume.implicitWidth + 36
-        case "battery":
-            return battery.implicitWidth + 36
-        case "bluetooth":
-            return bluetooth.implicitWidth + 36
-        case "brightness":
-            return brightness.implicitWidth + 36
-        case "network":
-            return network.implicitWidth + 36
         default:
             return Theme.islandBaseWidth
         }
@@ -109,24 +101,8 @@ Pill {
             }
         }
     }
-    VolumeAlert {
-        id: volume
-        anchors.centerIn: parent
-    }
-    BatteryAlert {
-        id: battery
-        anchors.centerIn: parent
-    }
-    BluetoothAlert {
-        id: bluetooth
-        anchors.centerIn: parent
-    }
-    BrightnessAlert {
-        id: brightness
-        anchors.centerIn: parent
-    }
-    NetworkAlert {
-        id: network
+    AlertView {
+        id: alert
         anchors.centerIn: parent
     }
 }

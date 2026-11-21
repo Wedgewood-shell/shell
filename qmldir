@@ -4,13 +4,10 @@ HyprbeamMenu menus/HyprbeamMenu.qml
 singleton HyprbeamService services/HyprbeamService.qml
 singleton AudioService services/AudioService.qml
 Bar bar/Bar.qml
-BatteryAlert island/views/BatteryAlert.qml
 singleton BatteryService services/BatteryService.qml
-BluetoothAlert island/views/BluetoothAlert.qml
 BluetoothMenu menus/BluetoothMenu.qml
 BluetoothPanel menus/BluetoothPanel.qml
 singleton BluetoothService services/BluetoothService.qml
-BrightnessAlert island/views/BrightnessAlert.qml
 singleton BrightnessService services/BrightnessService.qml
 CameraMenu menus/CameraMenu.qml
 CameraPanel menus/CameraPanel.qml
@@ -33,7 +30,6 @@ HoverFocus components/HoverFocus.qml
 HeliumView island/views/HeliumView.qml
 MenuPage components/MenuPage.qml
 MenuWindow menus/MenuWindow.qml
-NetworkAlert island/views/NetworkAlert.qml
 singleton NetworkService services/NetworkService.qml
 singleton NiriService services/NiriService.qml
 singleton OverlayController core/OverlayController.qml
@@ -49,7 +45,6 @@ singleton SystemService services/SystemService.qml
 singleton UeventService services/UeventService.qml
 singleton Theme core/Theme.qml
 Tray bar/Tray.qml
-VolumeAlert island/views/VolumeAlert.qml
 WifiMenu menus/WifiMenu.qml
 singleton WifiService services/WifiService.qml
 ClockView island/views/ClockView.qml
@@ -68,3 +63,4 @@ MediaView island/views/MediaView.qml
 MediaChip bar/MediaChip.qml
 AlbumArt components/AlbumArt.qml
 PerimeterProgress components/PerimeterProgress.qml
+AlertView island/views/AlertView.qml

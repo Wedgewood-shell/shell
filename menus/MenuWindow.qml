@@ -20,6 +20,42 @@ PanelWindow {
             hyprbeam: hyprbeamPage
         })
     readonly property var page: menuLoader.item
+    // The page actually shown. Switching menus while open fades the old page out, swaps it,
+    // and fades the new one in inside the same pill, instead of replacing it abruptly.
+    property string shownMode: OverlayController.launcherMode
+    property real switchFade: 1
+    Connections {
+        target: OverlayController
+        function onLauncherModeChanged() {
+            if (win.open && win.visible && win.shownMode !== OverlayController.launcherMode)
+                switchAnimation.restart()
+            else {
+                switchAnimation.stop()
+                win.shownMode = OverlayController.launcherMode
+                win.switchFade = 1
+            }
+        }
+    }
+    SequentialAnimation {
+        id: switchAnimation
+        NumberAnimation {
+            target: win
+            property: "switchFade"
+            to: 0
+            duration: 90
+            easing.type: Easing.InQuad
+        }
+        ScriptAction {
+            script: win.shownMode = OverlayController.launcherMode
+        }
+        NumberAnimation {
+            target: win
+            property: "switchFade"
+            to: 1
+            duration: 180
+            easing.type: Easing.OutQuad
+        }
+    }
     readonly property real closedWidth: OverlayController.islandWidths[screen ? screen.name : OverlayController.launcherScreen] ?? 300
     screen: Quickshell.screens.find(s => s.name === OverlayController.launcherScreen) ?? Quickshell.screens[0]
     visible: open || handoff.retained
@@ -202,7 +238,8 @@ PanelWindow {
                 anchors.fill: parent
                 // Above the (mostly invisible) header row so pages can use the top band for clicks.
                 z: 1
-                sourceComponent: win.pages[OverlayController.launcherMode] || appsPage
+                sourceComponent: win.pages[win.shownMode] || appsPage
+                opacity: win.switchFade
                 onLoaded: {
                     item.query = Qt.binding(() => field.text)
                     if (win.open)
@@ -215,13 +252,14 @@ PanelWindow {
                 width: parent.width - 28
                 height: 1
                 color: Theme.raised
+                opacity: win.switchFade
                 visible: (win.page && win.page.showHeader && win.page.showDivider)
             }
             Row {
                 x: 18
                 height: 42
                 spacing: 12
-                opacity: (win.page && win.page.showHeader) ? 1 : 0
+                opacity: (win.page && win.page.showHeader) ? win.switchFade : 0
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     text: (win.page ? win.page.glyph : "")
