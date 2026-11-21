@@ -25,6 +25,15 @@ Singleton {
     readonly property int islandFadeDuration: 120
     readonly property int barHeight: 42
     readonly property int topMargin: 8
+    // Compact bar, while a window spans the output width (maximized/fullscreen):
+    // a flush full-width strip with modules scaled down.
+    readonly property real compactScale: 0.9
+    readonly property int compactBarHeight: 40
+    readonly property int compactPadding: 10
+    readonly property color compactBackground: Qt.rgba(0x1a / 255, 0x1f / 255, 0x2d / 255, 0.85)
+    readonly property int compactDuration: 260
+    // Top of a scaled module when centred in the compact strip.
+    readonly property real compactTop: (compactBarHeight - barHeight * compactScale) / 2
     readonly property int closedRadius: 12
     readonly property int openRadius: 18
     readonly property int fadeDuration: 180

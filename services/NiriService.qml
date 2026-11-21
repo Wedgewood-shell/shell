@@ -160,6 +160,21 @@ Singleton {
         const w = workspaces[id]
         return w ? w.idx : 0
     }
+    // True when the active window of the output's active workspace spans the whole
+    // output width: a full-width column blended to the edges, maximize-to-edges, or
+    // fullscreen. Only the width is compared, so the bar's exclusive zone (which
+    // changes the window's height) cannot feed back into it.
+    function spansOutput(output, outputWidth) {
+        for (const k in workspaces) {
+            const ws = workspaces[k]
+            if (ws.output !== output || !ws.is_active)
+                continue
+            const w = ws.active_window_id != null ? windows[ws.active_window_id] : null
+            const size = w && w.layout ? w.layout.window_size : null
+            return !!size && outputWidth > 0 && size[0] >= outputWidth - 1
+        }
+        return false
+    }
     function wsOnOutput(output) {
         const out = []
         for (const k in workspaces)

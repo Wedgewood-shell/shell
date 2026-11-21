@@ -54,17 +54,24 @@ PanelWindow {
     readonly property real panelW: Math.min(640, room)
     readonly property int motion: 360
 
+    // Compact bar (see Bar.qml): the module shrinks into the flush strip.
+    readonly property bool compact: NiriService.spansOutput(outputName, modelData.width)
+    property real c: compact ? 1 : 0
+    Behavior on c {
+        NumberAnimation {
+            duration: Theme.compactDuration
+            easing.type: Easing.InOutCubic
+        }
+    }
+
+    // The surface is flush with the screen corner; the resting margins are drawn inside it.
     anchors {
         top: true
         left: true
     }
-    margins {
-        top: Theme.topMargin
-        left: 16
-    }
     // Fixed surface; only the content animates.
-    implicitWidth: Math.max(1, Math.round(modelData.width / 2))
-    implicitHeight: pillH / 2 + lift + adjPitch + 2 * pitch + tileH
+    implicitWidth: Math.max(1, Math.round(modelData.width / 2)) + 16
+    implicitHeight: Theme.topMargin + pillH / 2 + lift + adjPitch + 2 * pitch + tileH
     exclusionMode: ExclusionMode.Ignore
     color: "transparent"
     WlrLayershell.namespace: "window-switcher"
@@ -433,204 +440,216 @@ PanelWindow {
         onTriggered: sw.open = false
     }
 
-    // ---- workspace labels ----
-    Repeater {
-        model: sw.rows
-        delegate: Text {
-            required property var modelData
-            required property int index
-            readonly property real d: Math.abs(index - sw.camRow)
-            // Slides in from the left with the strip instead of appearing under the pill.
-            x: sw.labelW * sw.v * sw.e - sw.labelW * sw.v
-            width: sw.labelW - 6
-            horizontalAlignment: Text.AlignRight
-            y: sw.pillCY + sw.rowY(index - sw.camRow) - height / 2
-            visible: opacity > 0.01
-            opacity: sw.e * sw.v * sw.rowFade(d)
-            elide: Text.ElideRight
-            text: NiriService.wsLabel(modelData.id)
-            color: d < 0.5 ? Theme.text : Theme.muted
-            font.family: Theme.fontFamily
-            font.pixelSize: 13
-            font.weight: d < 0.5 ? Font.DemiBold : Font.Normal
-        }
-    }
-
-    // ---- strip ----
-    Item {
-        id: strip
-        x: sw.labelW * sw.v * sw.e
-        y: 0
-        width: Math.max(0, sw.panelW - x - 6)
-        height: sw.height
-        clip: true
-
-        Item {
-            id: world
-            x: sw.pillLeft - strip.x
-            y: sw.pillCY
-
-            Repeater {
-                model: winIds
-                delegate: Rectangle {
-                    id: tile
-                    required property int uid
-                    readonly property var t: sw.scene.tiles[uid] || null
-                    // Driven values (focus, open, niri's camera) are followed directly. Only
-                    // layout changes (a window moving to another column/row/workspace,
-                    // neighbours opening or closing) animate, by easing out the jump.
-                    property real dx: 0
-                    property real dyo: 0
-                    property real dw: 0
-                    property real dh: 0
-                    property real drow: 0
-                    property string slot: ""
-                    property var last: null
-                    onTChanged: {
-                        if (!t) {
-                            last = null
-                            return
-                        }
-                        const key = t.ws + ":" + t.col + ":" + t.r + ":" + t.k
-                        if (last && key !== slot) {
-                            dx += last.x - t.x
-                            dyo += last.yoff - t.yoff
-                            dw += last.w - t.w
-                            dh += last.h - t.h
-                            drow += last.row - t.row
-                            flip.restart()
-                        }
-                        slot = key
-                        last = t
-                    }
-                    ParallelAnimation {
-                        id: flip
-                        NumberAnimation {
-                            target: tile
-                            property: "dx"
-                            to: 0
-                            duration: sw.motion
-                            easing.type: Easing.InOutCubic
-                        }
-                        NumberAnimation {
-                            target: tile
-                            property: "dyo"
-                            to: 0
-                            duration: sw.motion
-                            easing.type: Easing.InOutCubic
-                        }
-                        NumberAnimation {
-                            target: tile
-                            property: "dw"
-                            to: 0
-                            duration: sw.motion
-                            easing.type: Easing.InOutCubic
-                        }
-                        NumberAnimation {
-                            target: tile
-                            property: "dh"
-                            to: 0
-                            duration: sw.motion
-                            easing.type: Easing.InOutCubic
-                        }
-                        NumberAnimation {
-                            target: tile
-                            property: "drow"
-                            to: 0
-                            duration: sw.motion
-                            easing.type: Easing.InOutCubic
-                        }
-                    }
-                    x: t ? t.x + dx : 0
-                    readonly property real rowPos: t ? t.row + drow : 0
-                    y: sw.rowY(rowPos - sw.camRow) + (t ? t.yoff : 0) + dyo
-                    width: t ? Math.max(0, t.w + dw) : 0
-                    height: t ? Math.max(0, t.h + dh) : 0
-                    // Fade by row distance, column distance and the strip edges.
-                    readonly property real rowD: Math.abs(rowPos - sw.camRow)
-                    readonly property real colFade: t ? Math.max(0.3, 1 - 0.2 * Math.max(0, Math.abs(t.cd) - 1)) : 0
-                    // 0 = small box, 1 = expanded into the pill (icon slides left, title appears).
-                    readonly property real pp: t ? t.pp : 0
-                    readonly property real slotFade: t ? 1 - t.hide : 1
-                    // At rest only the pill shows (unless the resting pill stands in for it).
-                    readonly property real restFade: sw.e + (1 - sw.e) * pp * (1 - sw.overlayOn)
-                    readonly property real leftX: world.x + x
-                    // Tiles fade as they scroll off the strip's edges; the focused pill never
-                    // does (with no columns to its left it sits right at the left edge).
-                    readonly property real edgeFade: {
-                        const f = Math.max(0, Math.min(1, 1 + leftX / sw.edgePad)) * Math.max(0, Math.min(1, (strip.width - leftX - width) / 28))
-                        return f + (1 - f) * pp
-                    }
-                    opacity: t ? sw.rowFade(rowD) * colFade * slotFade * edgeFade * restFade : 0
-                    visible: t !== null && opacity > 0.01
-                    radius: 6 + (Theme.closedRadius - 6) * pp
-                    color: sw.mix(sw.tileFill, sw.pillFill, pp)
-                    border.width: 1
-                    border.color: sw.mix(sw.tileBorder, sw.mix(sw.restBorder, sw.pillBorder, sw.e), pp)
-                    IconImage {
-                        readonly property real small: Math.max(1, Math.min(16, Math.min(tile.width, tile.height) - 6))
-                        implicitSize: small + (sw.pillIcon - small) * tile.pp
-                        x: (tile.width - implicitSize) / 2 * (1 - tile.pp) + sw.pillPad * tile.pp
-                        anchors.verticalCenter: parent.verticalCenter
-                        source: tile.t ? NiriService.windowIcon(NiriService.windows[tile.uid]) : ""
-                    }
-                    Text {
-                        visible: tile.pp > 0.01
-                        x: sw.pillTextX
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: Math.max(0, tile.width - x - 12)
-                        opacity: tile.pp * tile.pp * tile.pp
-                        readonly property var win: NiriService.windows[tile.uid] || null
-                        text: win ? (win.title || win.app_id || "") : ""
-                        color: "#c7d2ff"
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 14
-                        elide: Text.ElideRight
-                    }
-                }
-            }
-        }
-    }
-
-    // ---- stand-in pill ----
-    // The focused tile is the pill, at rest and open. This one only stands in when
-    // there is no such tile: an empty workspace, or a floating/off-workspace window.
     property real overlayOn: pillIsTile ? 0 : 1
     Behavior on overlayOn {
         NumberAnimation {
             duration: 150
         }
     }
-    Rectangle {
-        id: pill
-        opacity: sw.overlayOn
-        visible: sw.shownWin !== null && opacity > 0.01
-        x: sw.pillLeft
-        y: sw.pillCY - height / 2
-        width: sw.pillW
-        height: sw.pillH
-        radius: Theme.closedRadius
-        color: sw.pillFill
-        border.width: 1
-        border.color: sw.mix(sw.restBorder, sw.pillBorder, sw.e)
-        clip: true
-        IconImage {
-            visible: sw.shownWin !== null
-            x: sw.pillPad
-            anchors.verticalCenter: parent.verticalCenter
-            implicitSize: sw.pillIcon
-            source: NiriService.windowIcon(sw.shownWin)
+
+    Item {
+        id: stage
+        x: 16 + (Theme.compactPadding - 16) * sw.c
+        y: Theme.topMargin + (Theme.compactTop - Theme.topMargin) * sw.c
+        width: sw.width - 16
+        height: sw.height - Theme.topMargin
+        scale: 1 - (1 - Theme.compactScale) * sw.c
+        transformOrigin: Item.TopLeft
+
+        // ---- workspace labels ----
+        Repeater {
+            model: sw.rows
+            delegate: Text {
+                required property var modelData
+                required property int index
+                readonly property real d: Math.abs(index - sw.camRow)
+                // Slides in from the left with the strip instead of appearing under the pill.
+                x: sw.labelW * sw.v * sw.e - sw.labelW * sw.v
+                width: sw.labelW - 6
+                horizontalAlignment: Text.AlignRight
+                y: sw.pillCY + sw.rowY(index - sw.camRow) - height / 2
+                visible: opacity > 0.01
+                opacity: sw.e * sw.v * sw.rowFade(d)
+                elide: Text.ElideRight
+                text: NiriService.wsLabel(modelData.id)
+                color: d < 0.5 ? Theme.text : Theme.muted
+                font.family: Theme.fontFamily
+                font.pixelSize: 13
+                font.weight: d < 0.5 ? Font.DemiBold : Font.Normal
+            }
         }
-        Text {
-            x: sw.shownWin ? sw.pillTextX : sw.pillPad
-            anchors.verticalCenter: parent.verticalCenter
-            width: Math.max(0, pill.width - x - 12)
-            text: sw.shownTitle
-            color: sw.shownWin ? "#c7d2ff" : Theme.muted
-            font.family: Theme.fontFamily
-            font.pixelSize: 14
-            elide: Text.ElideRight
+
+        // ---- strip ----
+        Item {
+            id: strip
+            x: sw.labelW * sw.v * sw.e
+            y: 0
+            width: Math.max(0, sw.panelW - x - 6)
+            height: stage.height
+            clip: true
+
+            Item {
+                id: world
+                x: sw.pillLeft - strip.x
+                y: sw.pillCY
+
+                Repeater {
+                    model: winIds
+                    delegate: Rectangle {
+                        id: tile
+                        required property int uid
+                        readonly property var t: sw.scene.tiles[uid] || null
+                        // Driven values (focus, open, niri's camera) are followed directly. Only
+                        // layout changes (a window moving to another column/row/workspace,
+                        // neighbours opening or closing) animate, by easing out the jump.
+                        property real dx: 0
+                        property real dyo: 0
+                        property real dw: 0
+                        property real dh: 0
+                        property real drow: 0
+                        property string slot: ""
+                        property var last: null
+                        onTChanged: {
+                            if (!t) {
+                                last = null
+                                return
+                            }
+                            const key = t.ws + ":" + t.col + ":" + t.r + ":" + t.k
+                            if (last && key !== slot) {
+                                dx += last.x - t.x
+                                dyo += last.yoff - t.yoff
+                                dw += last.w - t.w
+                                dh += last.h - t.h
+                                drow += last.row - t.row
+                                flip.restart()
+                            }
+                            slot = key
+                            last = t
+                        }
+                        ParallelAnimation {
+                            id: flip
+                            NumberAnimation {
+                                target: tile
+                                property: "dx"
+                                to: 0
+                                duration: sw.motion
+                                easing.type: Easing.InOutCubic
+                            }
+                            NumberAnimation {
+                                target: tile
+                                property: "dyo"
+                                to: 0
+                                duration: sw.motion
+                                easing.type: Easing.InOutCubic
+                            }
+                            NumberAnimation {
+                                target: tile
+                                property: "dw"
+                                to: 0
+                                duration: sw.motion
+                                easing.type: Easing.InOutCubic
+                            }
+                            NumberAnimation {
+                                target: tile
+                                property: "dh"
+                                to: 0
+                                duration: sw.motion
+                                easing.type: Easing.InOutCubic
+                            }
+                            NumberAnimation {
+                                target: tile
+                                property: "drow"
+                                to: 0
+                                duration: sw.motion
+                                easing.type: Easing.InOutCubic
+                            }
+                        }
+                        x: t ? t.x + dx : 0
+                        readonly property real rowPos: t ? t.row + drow : 0
+                        y: sw.rowY(rowPos - sw.camRow) + (t ? t.yoff : 0) + dyo
+                        width: t ? Math.max(0, t.w + dw) : 0
+                        height: t ? Math.max(0, t.h + dh) : 0
+                        // Fade by row distance, column distance and the strip edges.
+                        readonly property real rowD: Math.abs(rowPos - sw.camRow)
+                        readonly property real colFade: t ? Math.max(0.3, 1 - 0.2 * Math.max(0, Math.abs(t.cd) - 1)) : 0
+                        // 0 = small box, 1 = expanded into the pill (icon slides left, title appears).
+                        readonly property real pp: t ? t.pp : 0
+                        readonly property real slotFade: t ? 1 - t.hide : 1
+                        // At rest only the pill shows (unless the resting pill stands in for it).
+                        readonly property real restFade: sw.e + (1 - sw.e) * pp * (1 - sw.overlayOn)
+                        readonly property real leftX: world.x + x
+                        // Tiles fade as they scroll off the strip's edges; the focused pill never
+                        // does (with no columns to its left it sits right at the left edge).
+                        readonly property real edgeFade: {
+                            const f = Math.max(0, Math.min(1, 1 + leftX / sw.edgePad)) * Math.max(0, Math.min(1, (strip.width - leftX - width) / 28))
+                            return f + (1 - f) * pp
+                        }
+                        opacity: t ? sw.rowFade(rowD) * colFade * slotFade * edgeFade * restFade : 0
+                        visible: t !== null && opacity > 0.01
+                        radius: 6 + (Theme.closedRadius - 6) * pp
+                        color: sw.mix(sw.tileFill, sw.pillFill, pp)
+                        border.width: 1
+                        border.color: sw.mix(sw.tileBorder, sw.mix(sw.restBorder, sw.pillBorder, sw.e), pp)
+                        IconImage {
+                            readonly property real small: Math.max(1, Math.min(16, Math.min(tile.width, tile.height) - 6))
+                            implicitSize: small + (sw.pillIcon - small) * tile.pp
+                            x: (tile.width - implicitSize) / 2 * (1 - tile.pp) + sw.pillPad * tile.pp
+                            anchors.verticalCenter: parent.verticalCenter
+                            source: tile.t ? NiriService.windowIcon(NiriService.windows[tile.uid]) : ""
+                        }
+                        Text {
+                            visible: tile.pp > 0.01
+                            x: sw.pillTextX
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: Math.max(0, tile.width - x - 12)
+                            opacity: tile.pp * tile.pp * tile.pp
+                            readonly property var win: NiriService.windows[tile.uid] || null
+                            text: win ? (win.title || win.app_id || "") : ""
+                            color: "#c7d2ff"
+                            font.family: Theme.fontFamily
+                            font.pixelSize: 14
+                            elide: Text.ElideRight
+                        }
+                    }
+                }
+            }
         }
+
+        // ---- stand-in pill ----
+        // The focused tile is the pill, at rest and open. This one only stands in when
+        // there is no such tile: an empty workspace, or a floating/off-workspace window.
+        Rectangle {
+            id: pill
+            opacity: sw.overlayOn
+            visible: sw.shownWin !== null && opacity > 0.01
+            x: sw.pillLeft
+            y: sw.pillCY - height / 2
+            width: sw.pillW
+            height: sw.pillH
+            radius: Theme.closedRadius
+            color: sw.pillFill
+            border.width: 1
+            border.color: sw.mix(sw.restBorder, sw.pillBorder, sw.e)
+            clip: true
+            IconImage {
+                visible: sw.shownWin !== null
+                x: sw.pillPad
+                anchors.verticalCenter: parent.verticalCenter
+                implicitSize: sw.pillIcon
+                source: NiriService.windowIcon(sw.shownWin)
+            }
+            Text {
+                x: sw.shownWin ? sw.pillTextX : sw.pillPad
+                anchors.verticalCenter: parent.verticalCenter
+                width: Math.max(0, pill.width - x - 12)
+                text: sw.shownTitle
+                color: sw.shownWin ? "#c7d2ff" : Theme.muted
+                font.family: Theme.fontFamily
+                font.pixelSize: 14
+                elide: Text.ElideRight
+            }
+        }
+
     }
 
     // ---- shared pill/tile styling ----

@@ -25,9 +25,26 @@ PanelWindow {
     onVisibleChanged: OverlayController.launcherMapped = visible
     color: "transparent"
     anchors.top: true
-    margins.top: Theme.topMargin
     implicitWidth: 720
-    implicitHeight: Math.max(640, layoutHeight + 64 + detailSpace)
+    implicitHeight: Theme.topMargin + Math.max(640, layoutHeight + 64 + detailSpace)
+    // On a compact bar (see Bar.qml) the closed pill matches the shrunken island, and
+    // grows to full size and position as the menu opens.
+    readonly property bool compact: screen ? NiriService.spansOutput(screen.name, screen.width) : false
+    property real c: compact ? 1 : 0
+    Behavior on c {
+        NumberAnimation {
+            duration: Theme.compactDuration
+            easing.type: Easing.InOutCubic
+        }
+    }
+    property real openness: open ? 1 : 0
+    Behavior on openness {
+        NumberAnimation {
+            duration: win.open ? Theme.morphDuration : win.closeDuration
+            easing.type: Easing.InOutCubic
+        }
+    }
+    readonly property real closedC: c * (1 - openness)
     // Grows only while a page has a detail surface; then stays put while it is shown.
     readonly property real detailSpace: page && page.detail ? page.detailHeight + detailGap : 0
     readonly property int detailGap: 12
@@ -124,6 +141,9 @@ PanelWindow {
     Rectangle {
         id: pill
         anchors.horizontalCenter: parent.horizontalCenter
+        y: Theme.topMargin + (Theme.compactTop - Theme.topMargin) * win.closedC
+        scale: 1 - (1 - Theme.compactScale) * win.closedC
+        transformOrigin: Item.Top
         clip: true
         radius: geometry.radius
         color: Theme.surface
