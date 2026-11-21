@@ -22,7 +22,7 @@ Row {
     readonly property int level: Math.max(0, Math.min(100, percentage))
     readonly property bool performance: profile === "performance"
     readonly property color frame: Theme.foreground
-    readonly property color fillColor: performance ? "#c4a7ff" : profile === "power-saver" ? Theme.warning : level < 20 ? Theme.danger : frame
+    readonly property color fillColor: performance ? Theme.purple : profile === "power-saver" ? Theme.warning : level < 20 ? Theme.danger : frame
     readonly property real s: bodyHeight / 84
     spacing: Math.round(bodyHeight * 0.18)
 

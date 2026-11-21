@@ -23,7 +23,7 @@ MenuPage {
                         label: "Balanced",
                         sub: "",
                         glyph: "\uf24e",
-                        tint: Theme.success,
+                        tint: Theme.highlight,
                         profile: "balanced"
                     },
                     {
@@ -31,7 +31,7 @@ MenuPage {
                         label: "Power saver",
                         sub: "",
                         glyph: "\uf06c",
-                        tint: "#a6da95",
+                        tint: Theme.success,
                         profile: "power-saver"
                     }
                 ]

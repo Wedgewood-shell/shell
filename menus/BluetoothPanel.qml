@@ -154,7 +154,7 @@ Item {
         id: b
         property string glyph: ""
         property string label: ""
-        property color tint: "#c7d2ff"
+        property color tint: Theme.text
         property bool focused: false
         property bool active: false
         property bool spinning: false
@@ -162,7 +162,7 @@ Item {
         implicitWidth: panel.btnSize
         implicitHeight: panel.btnSize
         radius: 8
-        color: hov.containsMouse || focused ? "#2d3856" : (active ? "#27405a" : "#222a42")
+        color: hov.containsMouse || focused ? Theme.raisedHover : (active ? Theme.raisedActive : Theme.raised)
         border.width: focused ? 2 : 0
         border.color: Theme.highlight
         Behavior on color {
@@ -192,7 +192,7 @@ Item {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: b.label
-                color: "#cdd5ee"
+                color: Theme.foreground
                 font.family: Theme.fontFamily
                 font.pixelSize: 10
                 font.weight: Font.DemiBold
@@ -241,7 +241,7 @@ Item {
 
                     readonly property bool hasBat: modelData.batteryAvailable
                     readonly property real bat: Math.max(0, Math.min(1, modelData.battery))
-                    readonly property color batColor: bat < 0.15 ? Theme.danger : bat < 0.3 ? Theme.warning : "#7be0a8"
+                    readonly property color batColor: bat < 0.15 ? Theme.danger : bat < 0.3 ? Theme.warning : Theme.success
 
                     Item {
                         id: ringBox
@@ -254,7 +254,7 @@ Item {
                             anchors.fill: parent
                             anchors.margins: 5
                             radius: width / 2
-                            color: "#222a42"
+                            color: Theme.raised
                         }
                         Canvas {
                             id: ring
@@ -274,7 +274,7 @@ Item {
                                 const c = width / 2, r = c - 3
                                 ctx.lineWidth = 4
                                 ctx.lineCap = "round"
-                                ctx.strokeStyle = "#2f3855"
+                                ctx.strokeStyle = Theme.raised
                                 ctx.beginPath()
                                 ctx.arc(c, c, r, 0, Math.PI * 2)
                                 ctx.stroke()
@@ -289,7 +289,7 @@ Item {
                         Text {
                             anchors.centerIn: parent
                             text: BluetoothService.btGlyph(dev.modelData.icon)
-                            color: "#c7d2ff"
+                            color: Theme.text
                             font.family: Theme.fontFamily
                             font.pixelSize: 26
                         }
@@ -301,7 +301,7 @@ Item {
                         horizontalAlignment: Text.AlignHCenter
                         elide: Text.ElideRight
                         text: dev.modelData.name || dev.modelData.deviceName
-                        color: "#e4e9f7"
+                        color: Theme.text
                         font.family: Theme.fontFamily
                         font.pixelSize: 11
                         font.weight: Font.DemiBold
@@ -311,7 +311,7 @@ Item {
                         y: 90
                         visible: dev.hasBat
                         text: Math.round(dev.bat * 100) + "%"
-                        color: "#8a95b8"
+                        color: Theme.muted
                         font.family: Theme.fontFamily
                         font.pixelSize: 10
                     }
@@ -337,7 +337,7 @@ Item {
                                                                                                                 ? "Stop" :
                                                                                                                   "Scan") : "Discoverable"
                 tint: modelData === "disable" ? (panel.on ? Theme.danger : Theme.success) : modelData === "scan"
-                                                ? Theme.highlight : (panel.discoverable ? "#7be0a8" : "#c7d2ff")
+                                                ? Theme.highlight : (panel.discoverable ? Theme.success : Theme.text)
                 active: (modelData === "scan" && panel.scanning) || (modelData === "discoverable" && panel.discoverable)
                 spinning: modelData === "scan" && panel.scanning
                 focused: panel.zone === "buttons" && panel.btnIndex === index
@@ -377,7 +377,7 @@ Item {
             highlightMoveDuration: 100
             highlight: Rectangle {
                 radius: 8
-                color: panel.zone === "list" ? "#2a3454" : "transparent"
+                color: panel.zone === "list" ? Theme.raisedHover : "transparent"
             }
             delegate: Item {
                 id: row
@@ -401,7 +401,7 @@ Item {
                     width: parent.width - 56 - 110
                     elide: Text.ElideRight
                     text: row.modelData.name || row.modelData.deviceName
-                    color: "#e4e9f7"
+                    color: Theme.text
                     font.family: Theme.fontFamily
                     font.pixelSize: 14
                 }

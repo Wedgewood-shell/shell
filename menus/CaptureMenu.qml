@@ -83,7 +83,7 @@ MenuPage {
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         text: modeButton.isStop ? "Stop" : modeButton.modelData.label
-                        color: modeButton.selected ? Theme.text : "#cdd5ee"
+                        color: modeButton.selected ? Theme.text : Theme.foreground
                         font.family: Theme.fontFamily
                         font.pixelSize: 13
                         font.weight: Font.DemiBold
@@ -368,7 +368,7 @@ MenuPage {
                 }
                 Rectangle {
                     anchors.fill: parent
-                    color: "#0b0d14"
+                    color: Theme.background
                 }
                 // One PipeWire stream for the highlighted window or display; retargeted
                 // on selection change, stopped when the picker closes.

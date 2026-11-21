@@ -34,7 +34,7 @@ Row {
         width: 150
         height: 6
         radius: 3
-        color: "#2b3350"
+        color: Theme.raised
         Rectangle {
             height: parent.height
             radius: 3

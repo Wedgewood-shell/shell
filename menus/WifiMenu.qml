@@ -152,7 +152,7 @@ MenuPage {
         width: parent.width - 28 - (page.wifiList ? page.btnsW + 6 : 0)
         height: page.cardH
         radius: 14
-        color: "#222a42"
+        color: Theme.raised
         readonly property var cur: WifiService.wifiData.current || ({
         kind: "none"
     })
@@ -225,7 +225,7 @@ MenuPage {
         width: parent.width
         elide: Text.ElideRight
         text: wifiCard.detail
-        color: wifiCard.connecting ? Theme.warning : WifiService.wifiResult === "ok" ? Theme.success : "#9aa6c8"
+        color: wifiCard.connecting ? Theme.warning : WifiService.wifiResult === "ok" ? Theme.success : Theme.muted
         font.family: Theme.fontFamily
         font.pixelSize: 12
     }

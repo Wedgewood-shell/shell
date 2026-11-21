@@ -22,7 +22,7 @@ Item {
             width: 9
             height: 9
             radius: 5
-            color: "#ff5c5c"
+            color: Theme.danger
             SequentialAnimation on opacity {
                 running: CaptureService.recording
                 loops: Animation.Infinite
@@ -41,7 +41,7 @@ Item {
         Text {
             anchors.verticalCenter: parent.verticalCenter
             text: Qt.formatTime(new Date(0, 0, 0, 0, Math.floor(CaptureService.recSecs / 60) % 60, CaptureService.recSecs % 60), "mm:ss")
-            color: "#ff9a9a"
+            color: Theme.danger
             font.family: Theme.fontFamily
             font.pixelSize: 14
             font.weight: Font.DemiBold

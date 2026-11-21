@@ -33,7 +33,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         x: 18
         text: view.kind === "say" ? Theme.cp(0xF057E) : view.kind === "listen" ? Theme.cp(0xF036C) : view.kind === "notice" ? Theme.cp(0xF0026) : Theme.cp(0xF012C)
-        color: view.listening ? "#ff5c5c" : view.kind === "notice" ? Theme.muted : Theme.highlight
+        color: view.listening ? Theme.danger : view.kind === "notice" ? Theme.muted : Theme.highlight
         font.pixelSize: 15
         SequentialAnimation on opacity {
             running: view.active && view.listening

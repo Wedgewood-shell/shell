@@ -26,7 +26,7 @@ Row {
     Text {
         anchors.verticalCenter: parent.verticalCenter
         text: BluetoothService.btGlyph(btRow.dev ? btRow.dev.icon : "")
-        color: IslandController.btUp ? Theme.highlight : "#929aab"
+        color: IslandController.btUp ? Theme.highlight : Theme.muted
         Behavior on color {
             ColorAnimation {
                 duration: 200
@@ -58,7 +58,7 @@ Row {
         spacing: 6
         Text {
             text: BatteryService.batteryGlyph(btRow.hasBat ? btRow.dev.battery : 0)
-            color: "#c7d2ff"
+            color: Theme.text
             font.family: Theme.fontFamily
             font.pixelSize: 15
         }

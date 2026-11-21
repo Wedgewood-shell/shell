@@ -102,7 +102,7 @@ Item {
         Rectangle {
             anchors.fill: parent
             radius: 17
-            color: "#0e1119"
+            color: Theme.background
         }
 
         Item {

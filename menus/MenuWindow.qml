@@ -199,7 +199,7 @@ PanelWindow {
                 y: 42
                 width: parent.width - 28
                 height: 1
-                color: "#2b3350"
+                color: Theme.raised
                 visible: (win.page && win.page.showHeader && win.page.showDivider)
             }
             Row {
@@ -225,7 +225,7 @@ PanelWindow {
                         visible: field.text.length === 0
                         text: (win.page ? win.page.title : "")
                         font.weight: (win.page && win.page.tiles) ? Font.DemiBold : Font.Normal
-                        color: "#6d7694"
+                        color: Theme.muted
                         font.family: Theme.fontFamily
                         font.pixelSize: 15
                     }

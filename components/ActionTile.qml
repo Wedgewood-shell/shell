@@ -8,12 +8,12 @@ Rectangle {
     property string label: ""
     property bool focused: false
     property bool spinning: false
-    property color tint: "#c7d2ff"
+    property color tint: Theme.text
     signal clicked
     implicitWidth: 74
     implicitHeight: 74
     radius: 8
-    color: hover.containsMouse || focused ? "#2d3856" : "#222a42"
+    color: hover.containsMouse || focused ? Theme.raisedHover : Theme.raised
     border.width: focused ? 2 : 0
     border.color: Theme.highlight
     Behavior on color {
@@ -44,7 +44,7 @@ Rectangle {
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: btn.label
-            color: "#cdd5ee"
+            color: Theme.foreground
             font.family: Theme.fontFamily
             font.pixelSize: 10
             font.weight: Font.DemiBold

@@ -9,10 +9,10 @@ Canvas {
     property string kind: "speaker"
     property real volume: 0
     property bool muted: false
-    property color base: "#ffffff"
+    property color base: Theme.text
     property real s: 1
     readonly property real over: Math.max(0, Math.min(1, (volume - 1) / 0.5))
-    readonly property color color: muted ? Qt.rgba(0.57, 0.6, 0.67, 1) : Qt.tint(base, Qt.rgba(1, 0.25, 0.25, over))
+    readonly property color color: muted ? Theme.muted : Qt.tint(base, Theme.alpha(Theme.danger, over))
     implicitWidth: (kind === "headphones" ? 16 : 21) * s
     implicitHeight: 16 * s
     width: implicitWidth

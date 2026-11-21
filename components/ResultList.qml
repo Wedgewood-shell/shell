@@ -21,7 +21,7 @@ ListView {
     highlightMoveVelocity: -1
     highlight: Rectangle {
         radius: list.tileMode ? 18 : 10
-        color: "#2a3454"
+        color: Theme.raisedHover
     }
     delegate: Item {
         id: row
@@ -63,17 +63,17 @@ ListView {
             radius: 11
             // badge palette: [fill, border, text]
             readonly property var pal: ({
-                                            "2.4 GHz": ["#3a2d1c", "#e0a458", "#f2cf9a"]   // amber
+                                            "2.4 GHz": Theme.badge(Theme.warning)
                                             ,
-                                            "5 GHz": ["#1b3a36", "#5fd0b8", "#a9ecdc"]   // teal
+                                            "5 GHz": Theme.badge(Theme.success)
                                             ,
-                                            "6 GHz": ["#1f3156", "#6f9bff", "#b8cdff"]   // blue
+                                            "6 GHz": Theme.badge(Theme.highlight)
                                             ,
-                                            "WIFI 6": ["#24405a", "#7cc4ff", "#bfe3ff"]   // sky
+                                            "WIFI 6": Theme.badge(Theme.cyan)
                                             ,
-                                            "WIFI 7": ["#3a2f5c", "#b79cff", "#d6c6ff"]    // violet
+                                            "WIFI 7": Theme.badge(Theme.purple)
                                         })
-            readonly property var colors: pal[row.modelData.badge] || ["#262d46", "#38415f", "#9aa6c8"]
+            readonly property var colors: pal[row.modelData.badge] || [Theme.raised, Theme.border, Theme.muted]
             color: colors[0]
             border.width: 1
             border.color: colors[1]
@@ -119,7 +119,7 @@ ListView {
                 horizontalAlignment: Text.AlignHCenter
                 elide: Text.ElideRight
                 text: row.modelData.label || row.modelData.name
-                color: row.ListView.isCurrentItem ? Theme.text : "#cdd5ee"
+                color: row.ListView.isCurrentItem ? Theme.text : Theme.foreground
                 font.family: Theme.fontFamily
                 font.pixelSize: 12
                 font.weight: Font.DemiBold
@@ -132,7 +132,7 @@ ListView {
             width: Math.max(0, parent.width - 54 - subText.width - 28 - (badgeRect.visible ? badgeRect.width + 12 : 0))
             elide: Text.ElideRight
             text: row.modelData.name
-            color: row.ListView.isCurrentItem ? Theme.text : "#cdd5ee"
+            color: row.ListView.isCurrentItem ? Theme.text : Theme.foreground
             font.family: Theme.fontFamily
             font.pixelSize: 15
         }

@@ -23,7 +23,7 @@ Row {
     Text {
         anchors.verticalCenter: parent.verticalCenter
         text: BatteryService.onBat ? BatteryService.batteryIcon() : "\uf240"
-        color: BatteryService.onBat ? (BatteryService.battery <= 15 ? Theme.danger : "#c7d2ff") : Theme.success
+        color: BatteryService.onBat ? (BatteryService.battery <= 15 ? Theme.danger : Theme.text) : Theme.success
         font.family: Theme.fontFamily
         font.pixelSize: 17
     }
@@ -40,7 +40,7 @@ Row {
         width: 150
         height: 6
         radius: 3
-        color: "#2b3350"
+        color: Theme.raised
         Rectangle {
             height: parent.height
             radius: 3
@@ -72,7 +72,7 @@ Row {
     Text {
         anchors.verticalCenter: parent.verticalCenter
         text: "·  " + (BatteryService.onBat ? "On battery" : "Plugged in")
-        color: "#9aa6c8"
+        color: Theme.muted
         font.family: Theme.fontFamily
         font.pixelSize: 14
     }

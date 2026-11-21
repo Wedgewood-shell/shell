@@ -65,7 +65,7 @@ MenuPage {
                         name: "Previous layout",
                         label: "Previous",
                         glyph: "\uf0e2",
-                        tint: "#9aa6c8",
+                        tint: Theme.muted,
                         act: "previous"
                     },
                     {

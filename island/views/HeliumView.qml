@@ -47,10 +47,10 @@ Item {
         width: 9
         height: 9
         radius: 5
-        color: "#ff5c5c"
+        color: Theme.danger
     }
     // Main domain in full colour; scheme, subdomains and path are dimmed.
-    readonly property string dim: "#8b94b0"
+    readonly property string dim: Theme.muted.toString()
     function esc(t) {
         return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     }
@@ -107,7 +107,7 @@ Item {
                 }
                 GradientStop {
                     position: 1
-                    color: "#1a1f2d"
+                    color: Theme.background
                 }
             }
         }

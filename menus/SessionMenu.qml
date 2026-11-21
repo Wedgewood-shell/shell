@@ -27,7 +27,7 @@ MenuPage {
                             name: "Firmware restart",
                             label: "Firmware",
                             glyph: "\uf2db",
-                            tint: "#c7a0ff",
+                            tint: Theme.purple,
                             act: "firmware"
                         }
                     ]
@@ -36,7 +36,7 @@ MenuPage {
                         name: "Exit",
                         label: "Exit",
                         glyph: "\uf08b",
-                        tint: "#9aa6c8",
+                        tint: Theme.muted,
                         act: "exit"
                     },
                     {
@@ -50,7 +50,7 @@ MenuPage {
                         name: "Lock",
                         label: "Lock",
                         glyph: "\uf023",
-                        tint: "#c7d2ff",
+                        tint: Theme.text,
                         act: "lock"
                     },
                     {

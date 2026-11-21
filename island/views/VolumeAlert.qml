@@ -26,19 +26,19 @@ Row {
         kind: AudioService.outputKind
         volume: AudioService.volume
         muted: AudioService.muted
-        base: "#c7d2ff"
+        base: Theme.text
     }
     Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         width: 150
         height: 6
         radius: 3
-        color: "#2b3350"
+        color: Theme.raised
         Rectangle {
             height: parent.height
             radius: 3
             width: parent.width * Math.min(1, AudioService.volume)
-            color: AudioService.muted ? "#929aab" : Theme.highlight
+            color: AudioService.muted ? Theme.muted : Theme.highlight
             Behavior on width {
                 NumberAnimation {
                     duration: 140
@@ -67,7 +67,7 @@ Row {
         width: Math.min(implicitWidth, 210)
         elide: Text.ElideRight
         text: "·  " + AudioService.sinkName
-        color: "#9aa6c8"
+        color: Theme.muted
         font.family: Theme.fontFamily
         font.pixelSize: 14
     }

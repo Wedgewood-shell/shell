@@ -57,7 +57,7 @@ Row {
         anchors.verticalCenter: parent.verticalCenter
         visible: NetworkService.netEvKind === "wifi"
         text: NetworkService.netEvSignal + "%"
-        color: "#9aa6c8"
+        color: Theme.muted
         font.family: Theme.fontFamily
         font.pixelSize: 14
     }

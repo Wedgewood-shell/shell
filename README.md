@@ -114,6 +114,13 @@ fixed 90 ms or overlapping two titles for most of the transition. The system tra
 ## Customize
 
 Edit `core/Theme.qml` for shared colors, font, radii and animation timings.
+
+Colors come from the Kitty palette, using the same role mapping as the GTK theme
+(`background` surfaces, `color0` raised tiles, `color8` borders, `color15` text,
+`foreground` muted text, `color4` accent, `color1`/`2`/`3` danger/success/warning).
+The palette is a snapshot between the `kitty palette` markers in `Theme.qml`;
+after changing Kitty's colors, run `python3 scripts/sync-kitty-theme.py` and
+restart Quickshell. Components use only `Theme` roles, never literal colors.
 Edit `core/Settings.qml` for backlight, AC, battery and temperature paths. Defaults
 match this laptop; hardware discovery and polling optimizations are separate work.
 

@@ -605,7 +605,7 @@ PanelWindow {
                             opacity: tile.pp * tile.pp * tile.pp
                             readonly property var win: NiriService.windows[tile.uid] || null
                             text: win ? (win.title || win.app_id || "") : ""
-                            color: "#c7d2ff"
+                            color: Theme.text
                             font.family: Theme.fontFamily
                             font.pixelSize: 14
                             elide: Text.ElideRight
@@ -643,7 +643,7 @@ PanelWindow {
                 anchors.verticalCenter: parent.verticalCenter
                 width: Math.max(0, pill.width - x - 12)
                 text: sw.shownTitle
-                color: sw.shownWin ? "#c7d2ff" : Theme.muted
+                color: sw.shownWin ? Theme.text : Theme.muted
                 font.family: Theme.fontFamily
                 font.pixelSize: 14
                 elide: Text.ElideRight
@@ -656,11 +656,11 @@ PanelWindow {
     readonly property int pillPad: 14
     readonly property int pillIcon: 18
     readonly property int pillTextX: pillPad + pillIcon + 10
-    readonly property color tileFill: Qt.rgba(0x2a / 255, 0x33 / 255, 0x52 / 255, 1)
-    readonly property color tileBorder: Qt.rgba(0.56, 0.66, 1, 0.75)
-    readonly property color pillFill: Qt.rgba(0x12 / 255, 0x16 / 255, 0x20 / 255, 0xf0 / 255)
-    readonly property color pillBorder: Qt.rgba(0.87, 0.88, 0.96, 0.75)
-    readonly property color restBorder: Qt.rgba(0.62, 0.68, 0.86, 0.3)
+    readonly property color tileFill: Theme.raised
+    readonly property color tileBorder: Theme.alpha(Theme.highlight, 0.75)
+    readonly property color pillFill: Theme.pill
+    readonly property color pillBorder: Theme.alpha(Theme.text, 0.6)
+    readonly property color restBorder: Theme.borderSubtle
     function mix(a, b, p) {
         return Qt.rgba(a.r + (b.r - a.r) * p, a.g + (b.g - a.g) * p, a.b + (b.b - a.b) * p, a.a + (b.a - a.a) * p)
     }
