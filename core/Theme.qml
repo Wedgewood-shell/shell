@@ -73,7 +73,7 @@ Singleton {
     // a flush full-width strip with modules scaled down.
     readonly property real compactScale: 0.9
     readonly property int compactBarHeight: 40
-    readonly property int compactPadding: 8
+    readonly property int compactPadding: 0
     readonly property color compactBackground: alpha(background, kittyOpacity)
     readonly property int compactDuration: 260
     // Compact sizes of bordered pills, kept on whole device pixels: each axis gets
