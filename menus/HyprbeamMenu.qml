@@ -8,7 +8,7 @@ import ".."
 // Escape or Backspace on an empty field go back to the results.
 MenuPage {
     id: page
-    title: actionsFor ? "Actions for " + actionsFor.title : "Search apps, windows, math…"
+    title: actionsFor ? "Actions for " + actionsFor.title : "Search apps, windows, tabs, math…"
     glyph: actionsFor ? Theme.cp(0xF140B) : Theme.cp(0xF0349)
     // The item whose actions are listed, or null for the results.
     property var actionsFor: null
@@ -159,7 +159,38 @@ MenuPage {
         if (!r || !r.item)
             return
         OverlayController.launcherOpen = false
-        HyprbeamService.activate(r.item.id, r.action || null)
+        const d = r.item.data || {}
+        if (d.kind === "browser-tab" || d.kind === "browser-url")
+            openBrowserItem(d, r.action || null)
+        else
+            HyprbeamService.activate(r.item.id, r.action || null)
+    }
+    // Browser results (hyprbeam's helide plugin) are only found daemon-side; the shell opens them.
+    function openBrowserItem(d, action) {
+        if (action === "copy") {
+            Quickshell.execDetached(["wl-copy", "--", d.url])
+            return
+        }
+        if (d.kind === "browser-tab" && !action) {
+            // Same path as the Windows menu: switch tab, then focus its niri window.
+            Quickshell.execDetached(["sh", "-c",
+                                     "exec \"$HOME/.local/bin/island-tabs-ctl\" activate \"$1\" \"$2\" \"$3\"", "sh",
+                                     d.tab_id, d.window_id, d.title || ""])
+            return
+        }
+        if (action === "here" && HeliumService.connected)
+            HeliumService.navigate(d.url)
+        else
+            Quickshell.execDetached(["sh", "-c", "exec \"$HOME/.local/bin/helium-browser\" \"$1\"", "sh", d.url])
+        focusBrowser()
+    }
+    // The most recently focused Helium window, which is where a new tab opens.
+    function focusBrowser() {
+        const wins = NiriService.windowData.filter(w => w.app_id.toLowerCase().startsWith("helium"))
+        if (!wins.length)
+            return
+        wins.sort((a, b) => b.ts - a.ts)
+        Quickshell.execDetached(["niri", "msg", "action", "focus-window", "--id", String(wins[0].id)])
     }
     Component.onCompleted: HyprbeamService.warm()
 }

@@ -250,6 +250,14 @@ ShellRoot {
                         {id: "apps:firefox.desktop", provider: "apps", title: "Firefox <x>", icon: "firefox", highlights: [0, 1], actions: [{id: "new-window", title: "New Window"}]},
                         {id: "calc:4", provider: "calc", title: "4", icon: "/tmp/i.png"}]})
                     test.check(menu.page.results.length === 2 && menu.page.results[1].iconFile === "/tmp/i.png", "hyprbeam results")
+                    HyprbeamService.handle({type: "results", id: HyprbeamService.queryId, done: true, items: [
+                        {id: "helide:t:5", provider: "helide", title: "Tab", data: {kind: "browser-tab", tab_id: "5", window_id: "2", url: "https://x.org/"}},
+                        {id: "apps:firefox.desktop", provider: "apps", title: "Firefox <x>", icon: "firefox", highlights: [0, 1], actions: [{id: "new-window", title: "New Window"}]},
+                        {id: "calc:4", provider: "calc", title: "4", icon: "/tmp/i.png"}]})
+                    test.check(menu.page.results.length === 3 && menu.page.results[0].item.data.kind === "browser-tab", "hyprbeam keeps browser item data")
+                    HyprbeamService.handle({type: "results", id: HyprbeamService.queryId, done: true, items: [
+                        {id: "apps:firefox.desktop", provider: "apps", title: "Firefox <x>", icon: "firefox", highlights: [0, 1], actions: [{id: "new-window", title: "New Window"}]},
+                        {id: "calc:4", provider: "calc", title: "4", icon: "/tmp/i.png"}]})
                     test.check(menu.page.results[0].markup.indexOf("&lt;x&gt;") > 0 && menu.page.results[0].markup.split("<font").length === 3, "hyprbeam highlights")
                     HyprbeamService.handle({type: "results", id: HyprbeamService.queryId - 1, done: true, items: []})
                     test.check(menu.page.results.length === 2, "hyprbeam drops stale frames")

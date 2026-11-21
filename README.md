@@ -222,6 +222,13 @@ actions), which the field then filters; Tab, Ctrl+K, Escape or Backspace on an
 empty field return to the results with the query restored. If the daemon is
 unreachable the menu shows the error and the bridge retries at most once a second.
 
+Browser results (tabs, bookmarks, history from hyprbeam's `helide` plugin) are only
+*found* by hyprbeam: their `data.kind` is `browser-tab` or `browser-url`, and the menu
+opens them itself. A tab is switched to through `island-tabs-ctl`, as in the Windows
+menu. A URL opens in a new tab with `helium-browser`, or with the "Open in Current Tab"
+action through `HeliumService.navigate`, and the most recent Helium window is then
+focused. "Copy URL" uses `wl-copy`.
+
 Voice conversation (ephemeral island state `voice`, driven by the `ttsd` / `sttd` user services):
 
 ```sh
