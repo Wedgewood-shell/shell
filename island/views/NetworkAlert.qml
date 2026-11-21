@@ -59,6 +59,7 @@ Row {
         text: NetworkService.netEvSignal + "%"
         color: Theme.muted
         font.family: Theme.fontFamily
+        font.features: Theme.tabularFigures
         font.pixelSize: 14
     }
 }

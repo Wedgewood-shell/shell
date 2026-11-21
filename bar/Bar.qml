@@ -131,6 +131,7 @@ PanelWindow {
                         text: SystemService.clockText
                         color: Theme.text
                         font.family: Theme.fontFamily
+                        font.features: Theme.tabularFigures
                         font.pixelSize: 14
                         font.weight: Font.DemiBold
                     }

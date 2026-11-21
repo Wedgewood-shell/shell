@@ -55,6 +55,7 @@ Row {
         text: Math.round(BrightnessService.briFrac * 100) + "%"
         color: Theme.text
         font.family: Theme.fontFamily
+        font.features: Theme.tabularFigures
         font.pixelSize: 15
         font.weight: Font.DemiBold
     }

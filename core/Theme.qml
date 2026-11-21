@@ -7,7 +7,13 @@ import ".."
 Singleton {
     id: root
 
-    readonly property string fontFamily: "FiraCode Nerd Font"
+    // Nerd Font icon glyphs (Theme.cp, "\uf…") aren't in SF Pro; fontconfig falls back
+    // to FiraCode Nerd Font, the only installed font that has them.
+    readonly property string fontFamily: "SF Pro Display"
+    // SF Pro digits are proportional; use on changing numbers (clock, percentages).
+    readonly property var tabularFigures: ({
+            "tnum": 1
+        })
 
     // ---- Kitty palette snapshot ----
     // Copied from ~/.config/kitty/{colors,kitty}.conf; regenerate with

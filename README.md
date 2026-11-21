@@ -188,7 +188,10 @@ and `island bluetooth`.
 
 Quickshell with Qt Quick, Wayland layer-shell support, Qt Multimedia, and its
 Bluetooth, Networking, PipeWire and system-tray modules; Niri; NetworkManager
-(`nmcli`); `ip`; `powerprofilesctl`; Python 3; and FiraCode Nerd Font.
+(`nmcli`); `ip`; `powerprofilesctl`; Python 3; SF Pro Display for text
+(AUR `nerd-fonts-apple-hinted`, built without Nerd patching so the family keeps
+its name); and FiraCode Nerd Font, which fontconfig falls back to for the icon
+glyphs. Changing numbers use tabular figures (`Theme.tabularFigures`).
 Actions additionally use Kitty, pavucontrol, swaylock, systemctl, and these existing
 helpers in `~/.local/bin/`:
 

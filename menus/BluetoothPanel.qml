@@ -313,6 +313,7 @@ Item {
                         text: Math.round(dev.bat * 100) + "%"
                         color: Theme.muted
                         font.family: Theme.fontFamily
+                        font.features: Theme.tabularFigures
                         font.pixelSize: 10
                     }
                 }

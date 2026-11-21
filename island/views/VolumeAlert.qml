@@ -59,6 +59,7 @@ Row {
         text: AudioService.muted ? "muted" : Math.round(AudioService.volume * 100) + "%"
         color: Theme.text
         font.family: Theme.fontFamily
+        font.features: Theme.tabularFigures
         font.pixelSize: 15
         font.weight: Font.DemiBold
     }

@@ -66,6 +66,7 @@ Row {
             text: btRow.hasBat ? Math.round(btRow.dev.battery * 100) + "%" : ""
             color: Theme.text
             font.family: Theme.fontFamily
+            font.features: Theme.tabularFigures
             font.pixelSize: 14
         }
     }

@@ -63,6 +63,7 @@ Item {
         text: SystemService.clockText
         color: Theme.text
         font.family: Theme.fontFamily
+        font.features: Theme.tabularFigures
         font.pixelSize: 15
         font.weight: Font.DemiBold
         opacity: (!view.active) ? 0 : 1
