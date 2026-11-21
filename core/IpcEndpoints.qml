@@ -69,6 +69,9 @@ Scope {
         function toggle(): void {
             OverlayController.openLauncher("apps")
         }
+        function hyprbeam(): void {
+            OverlayController.openLauncher("hyprbeam")
+        }
         function windows(): void {
             OverlayController.openLauncher("windows")
         }

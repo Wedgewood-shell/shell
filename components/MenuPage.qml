@@ -29,6 +29,8 @@ Item {
     property real contentWidth: tiles ? Math.max(340, tilesWidth + 44) : 620
     property real contentHeight: tiles ? 172 : 56 + Math.min(results.length, maxRows) * 46 + (results.length ? 6 : 0)
     signal clearQuery
+    // Replaces the field's text (e.g. restoring a query after a submenu).
+    signal setQuery(string text)
     function filter(q) {
         return []
     }

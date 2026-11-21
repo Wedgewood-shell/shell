@@ -16,7 +16,8 @@ PanelWindow {
             display: displayPage,
             power: powerPage,
             session: sessionPage,
-            address: addressPage
+            address: addressPage,
+            hyprbeam: hyprbeamPage
         })
     readonly property var page: menuLoader.item
     readonly property real closedWidth: OverlayController.islandWidths[screen ? screen.name : OverlayController.launcherScreen] ?? 300
@@ -138,6 +139,10 @@ PanelWindow {
         target: win.page
         function onClearQuery() {
             field.text = ""
+            field.forceActiveFocus()
+        }
+        function onSetQuery(text) {
+            field.text = text
             field.forceActiveFocus()
         }
     }
@@ -279,6 +284,10 @@ PanelWindow {
     Component {
         id: addressPage
         AddressMenu {}
+    }
+    Component {
+        id: hyprbeamPage
+        HyprbeamMenu {}
     }
     Component {
         id: appsPage

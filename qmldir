@@ -1,5 +1,7 @@
 ActionTile components/ActionTile.qml
 AppsMenu menus/AppsMenu.qml
+HyprbeamMenu menus/HyprbeamMenu.qml
+singleton HyprbeamService services/HyprbeamService.qml
 singleton AudioService services/AudioService.qml
 Bar bar/Bar.qml
 BatteryAlert island/views/BatteryAlert.qml

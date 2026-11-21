@@ -18,7 +18,7 @@ Singleton {
                                      })
     }
     readonly property real islandWidth: islandWidths[launcherScreen] !== undefined ? islandWidths[launcherScreen] : 300
-    property string launcherMode: "apps"      // "apps" | "windows" | "capture"
+    property string launcherMode: "apps"      // a MenuWindow.pages key: "apps" | "hyprbeam" | "windows" | …
     property string pendingMode: "apps"
     Process {
         id: focusedOut
@@ -43,6 +43,8 @@ Singleton {
             return
         }
         dismissHud()
+        if (mode === "hyprbeam")
+            HyprbeamService.warm()   // spawns the bridge while niri reports the output
         if (launcherOpen) {            // switch mode in place
             launcherMode = mode
             resetStages()

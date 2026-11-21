@@ -93,9 +93,10 @@ ListView {
             anchors.right: badgeRect.visible ? badgeRect.left : parent.right
             anchors.rightMargin: badgeRect.visible ? 12 : 14
             anchors.verticalCenter: parent.verticalCenter
-            width: Math.min(implicitWidth, 320)
+            // Per row: `subMax` caps the width, `subElideRight` keeps a description's start.
+            width: Math.min(implicitWidth, row.modelData.subMax || 320)
             horizontalAlignment: Text.AlignRight
-            elide: Text.ElideLeft
+            elide: row.modelData.subElideRight ? Text.ElideRight : Text.ElideLeft
             text: row.modelData.sub || ""
             color: Theme.muted
             font.family: Theme.fontFamily
@@ -131,7 +132,9 @@ ListView {
             anchors.verticalCenter: parent.verticalCenter
             width: Math.max(0, parent.width - 54 - subText.width - 28 - (badgeRect.visible ? badgeRect.width + 12 : 0))
             elide: Text.ElideRight
-            text: row.modelData.name
+            // `markup` (optional): the name as StyledText, e.g. with matched characters coloured.
+            textFormat: row.modelData.markup ? Text.StyledText : Text.PlainText
+            text: row.modelData.markup || row.modelData.name
             color: row.ListView.isCurrentItem ? Theme.text : Theme.foreground
             font.family: Theme.fontFamily
             font.pixelSize: 15

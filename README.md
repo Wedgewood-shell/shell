@@ -205,6 +205,23 @@ quickshell ipc call launcher session
 quickshell ipc call launcher camera
 ```
 
+hyprbeam launcher (Mod+Space; menu mode `hyprbeam`), a frontend for the
+[hyprbeam](~/Projects/hyprbeam) daemon (apps, calculator, niri windows, plugins):
+
+```sh
+quickshell ipc call launcher hyprbeam
+```
+
+`services/HyprbeamService.qml` keeps one `~/.local/bin/hyprbeam pipe` process (a
+JSON-lines bridge over a single daemon connection, since QML can't speak the
+MessagePack frames) running once the launcher has been opened. Each keystroke is
+a query; result frames for older queries are dropped, and later frames (plugins)
+keep the selected item. Matched characters are tinted with `Theme.highlight`.
+Tab or Ctrl+K opens the selected item's actions ("Open" plus its secondary
+actions), which the field then filters; Tab, Ctrl+K, Escape or Backspace on an
+empty field return to the results with the query restored. If the daemon is
+unreachable the menu shows the error and the bridge retries at most once a second.
+
 Voice conversation (ephemeral island state `voice`, driven by the `ttsd` / `sttd` user services):
 
 ```sh
@@ -228,6 +245,8 @@ Bluetooth, Networking, PipeWire and system-tray modules; Niri; NetworkManager
 (AUR `nerd-fonts-apple-hinted`, built without Nerd patching so the family keeps
 its name); and FiraCode Nerd Font, which fontconfig falls back to for the icon
 glyphs. Changing numbers use tabular figures (`Theme.tabularFigures`).
+The hyprbeam menu needs `hyprbeamd` (socket-activated user unit) and the
+`hyprbeam` CLI with its `pipe` command in `~/.local/bin/`.
 Actions additionally use Kitty, pavucontrol, swaylock, systemctl, and these existing
 helpers in `~/.local/bin/`:
 

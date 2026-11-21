@@ -245,6 +245,17 @@ ShellRoot {
                     test.check(menu.page.filter("a-nonexistent-application-9988").length === 0, "application filtering")
                     test.select("windows")
                     test.check(menu.page.filter("kitty").length === 1, "window app search")
+                    test.select("hyprbeam")
+                    HyprbeamService.handle({type: "results", id: HyprbeamService.queryId, done: true, items: [
+                        {id: "apps:firefox.desktop", provider: "apps", title: "Firefox <x>", icon: "firefox", highlights: [0, 1], actions: [{id: "new-window", title: "New Window"}]},
+                        {id: "calc:4", provider: "calc", title: "4", icon: "/tmp/i.png"}]})
+                    test.check(menu.page.results.length === 2 && menu.page.results[1].iconFile === "/tmp/i.png", "hyprbeam results")
+                    test.check(menu.page.results[0].markup.indexOf("&lt;x&gt;") > 0 && menu.page.results[0].markup.split("<font").length === 3, "hyprbeam highlights")
+                    HyprbeamService.handle({type: "results", id: HyprbeamService.queryId - 1, done: true, items: []})
+                    test.check(menu.page.results.length === 2, "hyprbeam drops stale frames")
+                    menu.page.currentIndex = 0
+                    test.check(menu.page.openActions() && menu.page.results.length === 2 && menu.page.results[1].action === "new-window", "hyprbeam actions list")
+                    test.check(menu.page.handleKey(Qt.Key_Escape) && !menu.page.actionsFor && menu.page.results.length === 2, "hyprbeam actions back")
                     test.select("capture")
                     test.check(CaptureService.captureStage === "scope" && CaptureService.captureKind === "screenshot", "capture starts in snap mode")
                     test.check(menu.page.results.length === 3 && menu.page.results[0].scope === "area" && menu.page.results[1].scope === "window" && menu.page.results[2].scope === "screen", "capture tiles ordered area, window, screen")
