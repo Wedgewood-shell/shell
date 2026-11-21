@@ -27,7 +27,7 @@ Row {
 
         color: Theme.warning
         font.family: Theme.fontFamily
-        font.pixelSize: 17
+        font.pixelSize: 22
     }
     Rectangle {
         anchors.verticalCenter: parent.verticalCenter
@@ -56,7 +56,7 @@ Row {
         color: Theme.text
         font.family: Theme.fontFamily
         font.features: Theme.tabularFigures
-        font.pixelSize: 15
+        font.pixelSize: 19
         font.weight: Font.DemiBold
     }
 }

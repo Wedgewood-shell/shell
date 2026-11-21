@@ -25,7 +25,7 @@ Row {
         text: BatteryService.onBat ? BatteryService.batteryIcon() : "\uf240"
         color: BatteryService.onBat ? (BatteryService.battery <= 15 ? Theme.danger : Theme.text) : Theme.success
         font.family: Theme.fontFamily
-        font.pixelSize: 17
+        font.pixelSize: 22
     }
     Text {
         anchors.verticalCenter: parent.verticalCenter
@@ -33,7 +33,7 @@ Row {
         text: "\uf0e7"
         color: Theme.warning
         font.family: Theme.fontFamily
-        font.pixelSize: 16
+        font.pixelSize: 21
     }
     Rectangle {
         anchors.verticalCenter: parent.verticalCenter
@@ -67,7 +67,7 @@ Row {
         color: Theme.text
         font.family: Theme.fontFamily
         font.features: Theme.tabularFigures
-        font.pixelSize: 15
+        font.pixelSize: 19
         font.weight: Font.DemiBold
     }
     Text {
@@ -75,6 +75,6 @@ Row {
         text: "·  " + (BatteryService.onBat ? "On battery" : "Plugged in")
         color: Theme.muted
         font.family: Theme.fontFamily
-        font.pixelSize: 14
+        font.pixelSize: 18
     }
 }

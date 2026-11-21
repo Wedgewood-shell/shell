@@ -34,7 +34,7 @@ Row {
             }
         }
         font.family: Theme.fontFamily
-        font.pixelSize: 18
+        font.pixelSize: 23
     }
     Text {
         anchors.verticalCenter: parent.verticalCenter
@@ -43,7 +43,7 @@ Row {
         text: netRow.up ? NetworkService.netEvName : (NetworkService.netEvPrev ? NetworkService.netEvPrev : "Network")
         color: Theme.text
         font.family: Theme.fontFamily
-        font.pixelSize: 15
+        font.pixelSize: 19
         font.weight: Font.DemiBold
     }
     Text {
@@ -51,7 +51,7 @@ Row {
         text: netRow.up ? (NetworkService.netEvHotspot ? "·  Mobile hotspot" : "·  Connected") : "·  Disconnected"
         color: netRow.up ? Theme.success : Theme.danger
         font.family: Theme.fontFamily
-        font.pixelSize: 14
+        font.pixelSize: 18
     }
     Text {
         anchors.verticalCenter: parent.verticalCenter
@@ -60,6 +60,6 @@ Row {
         color: Theme.muted
         font.family: Theme.fontFamily
         font.features: Theme.tabularFigures
-        font.pixelSize: 14
+        font.pixelSize: 18
     }
 }

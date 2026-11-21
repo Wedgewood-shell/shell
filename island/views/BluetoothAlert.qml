@@ -33,7 +33,7 @@ Row {
             }
         }
         font.family: Theme.fontFamily
-        font.pixelSize: 18
+        font.pixelSize: 23
     }
     Text {
         anchors.verticalCenter: parent.verticalCenter
@@ -42,7 +42,7 @@ Row {
         text: btRow.dev ? (btRow.dev.name || btRow.dev.deviceName) : ""
         color: Theme.text
         font.family: Theme.fontFamily
-        font.pixelSize: 15
+        font.pixelSize: 19
         font.weight: Font.DemiBold
     }
     Text {
@@ -50,7 +50,7 @@ Row {
         text: IslandController.btUp ? "·  Connected" : "·  Disconnected"
         color: IslandController.btUp ? Theme.success : Theme.danger
         font.family: Theme.fontFamily
-        font.pixelSize: 14
+        font.pixelSize: 18
     }
     Row {
         anchors.verticalCenter: parent.verticalCenter
@@ -60,14 +60,14 @@ Row {
             text: BatteryService.batteryGlyph(btRow.hasBat ? btRow.dev.battery : 0)
             color: Theme.text
             font.family: Theme.fontFamily
-            font.pixelSize: 15
+            font.pixelSize: 19
         }
         Text {
             text: btRow.hasBat ? Math.round(btRow.dev.battery * 100) + "%" : ""
             color: Theme.text
             font.family: Theme.fontFamily
             font.features: Theme.tabularFigures
-            font.pixelSize: 14
+            font.pixelSize: 18
         }
     }
 }

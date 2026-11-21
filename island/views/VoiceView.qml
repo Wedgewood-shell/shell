@@ -34,7 +34,7 @@ Item {
         x: 18
         text: view.kind === "say" ? Theme.cp(0xF057E) : view.kind === "listen" ? Theme.cp(0xF036C) : view.kind === "notice" ? Theme.cp(0xF0026) : Theme.cp(0xF012C)
         color: view.listening ? Theme.danger : view.kind === "notice" ? Theme.muted : Theme.highlight
-        font.pixelSize: 15
+        font.pixelSize: 19
         SequentialAnimation on opacity {
             running: view.active && view.listening
             loops: Animation.Infinite
@@ -86,7 +86,7 @@ Item {
             text: box.shown
             color: view.text.length > 0 || !view.listening ? Theme.text : Theme.muted
             font.family: Theme.fontFamily
-            font.pixelSize: 14
+            font.pixelSize: 18
             font.weight: Font.DemiBold
             // listen: stick to the newest words; otherwise follow the marquee.
             x: box.overflow <= 0 ? 0 : view.listening ? -box.overflow : -box.scrollX

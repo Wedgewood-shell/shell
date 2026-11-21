@@ -86,7 +86,7 @@ Item {
             }
             color: MediaService.playing ? Theme.text : Theme.muted
             font.family: Theme.fontFamily
-            font.pixelSize: 14
+            font.pixelSize: 18
             font.weight: Font.DemiBold
         }
         Rectangle {

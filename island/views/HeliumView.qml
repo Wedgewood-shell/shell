@@ -36,7 +36,7 @@ Item {
         x: 18
         text: view.secure ? Theme.cp(0xF033E) : Theme.cp(0xF059F)
         color: view.secure ? Theme.highlight : Theme.muted
-        font.pixelSize: 14
+        font.pixelSize: 18
     }
     Rectangle {
         id: recDot
@@ -89,7 +89,7 @@ Item {
             text: view.styled(view.url)
             color: Theme.text
             font.family: Theme.fontFamily
-            font.pixelSize: 14
+            font.pixelSize: 18
             font.weight: Font.DemiBold
         }
         // Long addresses fade out instead of eliding. (The island's border is a Frame

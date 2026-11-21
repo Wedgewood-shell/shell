@@ -60,7 +60,7 @@ Row {
         color: Theme.text
         font.family: Theme.fontFamily
         font.features: Theme.tabularFigures
-        font.pixelSize: 15
+        font.pixelSize: 19
         font.weight: Font.DemiBold
     }
     Text {
@@ -70,6 +70,6 @@ Row {
         text: "·  " + AudioService.sinkName
         color: Theme.muted
         font.family: Theme.fontFamily
-        font.pixelSize: 14
+        font.pixelSize: 18
     }
 }

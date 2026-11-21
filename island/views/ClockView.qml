@@ -43,7 +43,7 @@ Item {
             text: Qt.formatTime(new Date(0, 0, 0, 0, Math.floor(CaptureService.recSecs / 60) % 60, CaptureService.recSecs % 60), "mm:ss")
             color: Theme.danger
             font.family: Theme.fontFamily
-            font.pixelSize: 14
+            font.pixelSize: 18
             font.weight: Font.DemiBold
         }
     }
@@ -64,7 +64,7 @@ Item {
         color: Theme.text
         font.family: Theme.fontFamily
         font.features: Theme.tabularFigures
-        font.pixelSize: 15
+        font.pixelSize: 19
         font.weight: Font.DemiBold
         opacity: (!view.active) ? 0 : 1
         scale: (!view.active) ? 0.92 : 1

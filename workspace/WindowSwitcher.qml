@@ -43,7 +43,7 @@ PanelWindow {
     FontMetrics {
         id: labelMetrics
         font.family: Theme.fontFamily
-        font.pixelSize: 13
+        font.pixelSize: 17
         font.weight: Font.DemiBold
     }
     readonly property int openPillW: 210
@@ -184,7 +184,7 @@ PanelWindow {
     FontMetrics {
         id: titleFont
         font.family: Theme.fontFamily
-        font.pixelSize: 14
+        font.pixelSize: 18
     }
 
     // ---- scene: every window's slot, relative to the pill centre ----
@@ -481,7 +481,7 @@ PanelWindow {
                 text: NiriService.wsLabel(modelData.id)
                 color: d < 0.5 ? Theme.text : Theme.muted
                 font.family: Theme.fontFamily
-                font.pixelSize: 13
+                font.pixelSize: 17
                 font.weight: d < 0.5 ? Font.DemiBold : Font.Normal
             }
         }
@@ -614,7 +614,7 @@ PanelWindow {
                             text: win ? (win.title || win.app_id || "") : ""
                             color: Theme.text
                             font.family: Theme.fontFamily
-                            font.pixelSize: 14
+                            font.pixelSize: 18
                             elide: Text.ElideRight
                         }
                     }
@@ -652,7 +652,7 @@ PanelWindow {
                 text: sw.shownTitle
                 color: sw.shownWin ? Theme.text : Theme.muted
                 font.family: Theme.fontFamily
-                font.pixelSize: 14
+                font.pixelSize: 18
                 elide: Text.ElideRight
             }
         }
