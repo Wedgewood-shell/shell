@@ -72,9 +72,9 @@ Singleton {
     readonly property int islandFadeDuration: 120
     readonly property int barHeight: 42
     readonly property int topMargin: 8
-    // Bar text size. Apple's menu bar text is 13pt in a 24pt bar (0.54 of the bar height);
-    // the compact bar is 40px with modules at compactScale, so 24 * 0.9 = 21.6 = 0.54 * 40.
-    readonly property int barFontSize: 24
+    // Bar text size. Apple's proportions (13pt in a 24pt bar) would be 24 here, but that
+    // looks oversized beside our smaller icons, so this is a compromise (16.2 when compact).
+    readonly property int barFontSize: 18
     // Compact bar, while a window spans the output width (maximized/fullscreen):
     // a flush full-width strip with modules scaled down.
     readonly property real compactScale: 0.9
