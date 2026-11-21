@@ -73,6 +73,10 @@ Singleton {
     // a flush full-width strip with modules scaled down.
     readonly property real compactScale: 0.9
     readonly property int compactBarHeight: 40
+    // The bar's exclusive zone, always (so ordinary windows never resize). Expanded
+    // full-width windows reach under it via niri's full-width-to-edges-top, which must
+    // match: layout 40 (= compactBarHeight), and 0 for smart-fullscreen apps.
+    readonly property int barZone: topMargin + 50
     readonly property int compactPadding: 0
     readonly property color compactBackground: alpha(background, kittyOpacity)
     readonly property int compactDuration: 260

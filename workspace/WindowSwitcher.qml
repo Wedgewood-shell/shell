@@ -60,6 +60,7 @@ PanelWindow {
         id: mode
         output: sw.outputName
         outputWidth: sw.modelData.width
+        outputHeight: sw.modelData.height
     }
     readonly property real c: mode.c
 

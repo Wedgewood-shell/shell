@@ -34,6 +34,7 @@ PanelWindow {
         id: mode
         output: win.screen ? win.screen.name : ""
         outputWidth: win.screen ? win.screen.width : 0
+        outputHeight: win.screen ? win.screen.height : 0
     }
     readonly property real c: mode.c
     property real openness: open ? 1 : 0

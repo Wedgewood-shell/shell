@@ -8,17 +8,15 @@ PanelWindow {
     required property var modelData
     screen: modelData
 
-    // Compact while a window spans this output's width: the floating pills become
-    // a flush, full-width strip with a background, and modules shrink. The exclusive
-    // zone follows the active window; the look follows niri's camera (BarMode).
-    readonly property bool compact: NiriService.spansOutput(modelData.name, modelData.width)
-    // Smart fullscreen (Settings.smartFullscreenApps): a compact bar that reserves no
-    // space, so the window extends underneath it, with a fading tint instead of a solid one.
-    readonly property bool smart: compact && NiriService.smartFullscreenOn(modelData.name, modelData.width)
+    // Compact while an expanded full-width window reaches under the bar: the floating
+    // pills become a flush, full-width strip with a background, and modules shrink.
+    // Smart fullscreen (a window up to the very top) uses a fading tint instead.
+    // Follows niri's camera; see BarMode.
     BarModeFollower {
         id: mode
         output: bar.modelData.name
         outputWidth: bar.modelData.width
+        outputHeight: bar.modelData.height
     }
     readonly property real c: mode.c
     readonly property real moduleScale: 1 - (1 - Theme.compactScale) * c
@@ -33,8 +31,9 @@ PanelWindow {
         right: true
     }
     implicitHeight: Theme.surfaceSize(Theme.topMargin + Theme.px(Theme.barHeight, devicePixelRatio), devicePixelRatio)
-    // Switches at once (windows resize once, not every frame).
-    exclusiveZone: smart ? 0 : compact ? Theme.compactBarHeight : Theme.topMargin + 50
+    // Constant, so ordinary windows never resize; expanded windows reach under the bar
+    // through niri's full-width-to-edges-top instead (see Theme.barZone).
+    exclusiveZone: Theme.barZone
     color: "transparent"
     WlrLayershell.namespace: "island-bar"
     mask: Region {

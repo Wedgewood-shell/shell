@@ -35,12 +35,20 @@ The status pill uses a larger battery indicator with the percentage inside while
 on battery, a lightning bolt while charging, and a plug when externally powered
 without charging. AC state is used to distinguish plugged-in from discharging.
 
-While the active window on an output spans its full width (full-width column
-blended to the edges, maximize-to-edges, or fullscreen), that output's bar turns
-compact: a flush, full-width strip (`Theme.compactBackground`) of
-`Theme.compactBarHeight` with modules scaled by `Theme.compactScale`, and a
-matching exclusive zone. `NiriService.spansOutput()` detects this from
-`window_size` width only, so the exclusive-zone change cannot feed back into it.
+The bar always reserves `Theme.barZone` (58 px), so ordinary windows never resize
+when it changes mode. Full-width columns (niri fork `full-width-to-edges`, Mod+F)
+reach under it instead, through the fork's `full-width-to-edges-top`: 40 in niri's
+`layout {}` (= `Theme.compactBarHeight`), and 0 for smart-fullscreen apps via a
+window rule (currently kitty, in `niri/window-rules.kdl`; the only list of them).
+
+The bar reads the result from the window's geometry (`BarMode.spanKind`): as wide
+as the output and taller than the space below the reservation means compact (a
+flush, full-width strip of `Theme.compactBarHeight`, `Theme.compactBackground`,
+modules scaled by `Theme.compactScale`); reaching the very top means smart
+fullscreen, where the solid strip becomes a gradient (full tint at the top edge,
+fading out a little past the strip). Maximize-to-edges (Mod+M) stops at the
+reservation, so it keeps the normal bar.
+
 The bar, window switcher and menu pill follow the same continuous value
 (`core/BarMode.qml` via `components/BarModeFollower.qml`). It mirrors the niri
 fork's full-width-to-edges blend: each full-width column's progress is
@@ -48,18 +56,9 @@ fork's full-width-to-edges blend: each full-width column's progress is
 live `view_pos` in niri's view stream. Adjacent full-width columns form a run that
 blends as one (distance is to the run, not the column), so swiping between two
 maximized windows stays compact; the solid/gradient tint crossfades between them.
-Workspace switches crossfade by the vertical
-camera position. So the bar grows and shrinks with swipes and niri's view
-animations, frame by frame. Changes without camera movement (maximizing in place)
-ease over `Theme.compactDuration`. The exclusive zone still switches once, with the
-active window, so windows don't resize mid-swipe.
-
-Smart fullscreen: when that full-width window is one of
-`Settings.smartFullscreenApps` (currently kitty), the compact bar reserves no
-space (`exclusiveZone: 0`), so the window grows to the whole output underneath
-it. The strip's solid tint becomes a gradient instead: full
-`Theme.compactBackground` at the top edge, fading to transparent at the bottom of
-the bar surface (a little past the strip), so there is no hard edge over the window.
+Workspace switches crossfade by the vertical camera position. So the bar grows
+and shrinks with swipes and niri's view animations, frame by frame; changes
+without camera movement (maximizing in place) ease over `Theme.compactDuration`.
 
 Both menu and workspace-HUD geometry use `components/IslandMorph.qml`: one
 animation progress value interpolates width, height and radius together, with

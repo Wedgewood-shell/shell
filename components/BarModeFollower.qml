@@ -9,8 +9,9 @@ Scope {
     id: follower
     required property string output
     required property real outputWidth
+    required property real outputHeight
 
-    readonly property var state: BarMode.state(output, outputWidth)
+    readonly property var state: BarMode.state(output, outputWidth, outputHeight)
     property real plain: state.plain
     property real smart: state.smart
     // 0 = normal, 1 = compact. plain and smart split it (a swipe between a smart and an

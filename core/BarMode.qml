@@ -11,7 +11,7 @@ import ".."
 //
 // state() returns { plain, smart, driven }:
 //   plain   0..1, compactness from full-width windows of ordinary apps (solid tint)
-//   smart   0..1, the same for Settings.smartFullscreenApps (tint gradient)
+//   smart   0..1, the same for windows reaching the very top (tint gradient)
 //   (they split one value: plain + smart is the compactness, at most 1)
 //   driven  niri's camera is moving: follow the values directly, don't animate
 // At rest the active window decides (whole values, same rule as the exclusive zone).
@@ -22,7 +22,7 @@ Singleton {
     readonly property real blendFraction: 0.25
     readonly property int gaps: NiriService.layoutGap
 
-    function state(output, outputWidth) {
+    function state(output, outputWidth, outputHeight) {
         const rows = NiriService.wsOnOutput(output)
         if (!rows.length)
             return { plain: 0, smart: 0, driven: false }
@@ -30,11 +30,11 @@ Singleton {
         const moving = NiriViewService.moving(view)
         const pos = moving ? clamp(view.position, 0, rows.length - 1) : Math.max(0, rows.findIndex(w => w.is_active))
         const i = Math.floor(pos), f = pos - i
-        const a = workspaceState(rows[i], outputWidth)
+        const a = workspaceState(rows[i], outputWidth, outputHeight)
         if (f < 1e-6 || i + 1 >= rows.length)
             return { plain: a.plain, smart: a.smart, driven: moving || a.driven }
         // Between two workspaces: crossfade by the vertical camera position.
-        const b = workspaceState(rows[i + 1], outputWidth)
+        const b = workspaceState(rows[i + 1], outputWidth, outputHeight)
         return {
             plain: a.plain + (b.plain - a.plain) * f,
             smart: a.smart + (b.smart - a.smart) * f,
@@ -42,12 +42,12 @@ Singleton {
         }
     }
 
-    function workspaceState(ws, outputWidth) {
+    function workspaceState(ws, outputWidth, outputHeight) {
         const wins = NiriService.windows
         const view = NiriViewService.columnViews[ws.id]
         if (!NiriViewService.moving(view) || view.viewPos === undefined) {
             const w = ws.active_window_id != null ? wins[ws.active_window_id] : null
-            const kind = spanKind(w, outputWidth)
+            const kind = spanKind(w, outputWidth, outputHeight)
             return { plain: kind === "plain" ? 1 : 0, smart: kind === "smart" ? 1 : 0, driven: false }
         }
         // Columns left to right: width (widest tile) and whether a window spans.
@@ -59,7 +59,7 @@ Singleton {
                 continue
             const col = cols[p[0]] || (cols[p[0]] = { width: 0, kind: "" })
             col.width = Math.max(col.width, w.layout.tile_size ? w.layout.tile_size[0] : 0)
-            col.kind = spanKind(w, outputWidth) || col.kind
+            col.kind = spanKind(w, outputWidth, outputHeight) || col.kind
         }
         // Each column's aligned camera position (col_x minus the working area's left gap).
         const list = []
@@ -93,12 +93,17 @@ Singleton {
         return { plain: plain, smart: smart, driven: true }
     }
 
-    // "smart" / "plain" if the window spans the output width, else "".
-    function spanKind(w, outputWidth) {
+    // From the window's own geometry (niri decides it via full-width-to-edges-top):
+    //   "plain"  as wide as the output and reaching under the bar's exclusive zone
+    //   "smart"  the same, all the way to the top of the output
+    //   ""       anything else (including maximize-to-edges, which stops at the bar)
+    function spanKind(w, outputWidth, outputHeight) {
         const size = w && w.layout ? w.layout.window_size : null
         if (!size || outputWidth <= 0 || size[0] < outputWidth - 1)
             return ""
-        return Settings.smartFullscreenApps.indexOf(w.app_id) >= 0 ? "smart" : "plain"
+        if (size[1] >= outputHeight - 1)
+            return "smart"
+        return size[1] > outputHeight - Theme.barZone + 0.5 ? "plain" : ""
     }
 
     // 0..1: how much of the run at camera position v is a smart-fullscreen app.
