@@ -35,6 +35,14 @@ The status pill uses a larger battery indicator with the percentage inside while
 on battery, a lightning bolt while charging, and a plug when externally powered
 without charging. AC state is used to distinguish plugged-in from discharging.
 
+While the active window on an output spans its full width (full-width column
+blended to the edges, maximize-to-edges, or fullscreen), that output's bar turns
+compact: a flush, full-width strip (`Theme.compactBackground`) of
+`Theme.compactBarHeight` with modules scaled by `Theme.compactScale`, and a
+matching exclusive zone. `NiriService.spansOutput()` detects this from
+`window_size` width only, so the exclusive-zone change cannot feed back into it.
+The bar, window switcher and menu pill each animate the same transition.
+
 Both menu and workspace-HUD geometry use `components/IslandMorph.qml`: one
 animation progress value interpolates width, height and radius together, with
 coalesced target updates and support for reversal and live menu resizing.
