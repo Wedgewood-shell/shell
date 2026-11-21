@@ -60,3 +60,4 @@ BatteryIndicator components/BatteryIndicator.qml
 VoiceView island/views/VoiceView.qml
 singleton BarMode core/BarMode.qml
 BarModeFollower components/BarModeFollower.qml
+Frame components/Frame.qml

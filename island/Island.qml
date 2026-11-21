@@ -6,9 +6,17 @@ Pill {
     id: pill
     // Page-load progress traced around the island's perimeter.
     property bool showProgress: true
+    // Draw the island's border (off when hosted inside a pill that has its own).
+    property bool framed: true
     accent: Theme.border
     color: Theme.surface
     clip: true
+    // The border is a Frame above the views, so nothing a view draws can cover it.
+    border.width: 0
+    Frame {
+        visible: pill.framed
+        border.color: pill.accent
+    }
     // The hosting window's devicePixelRatio; geometry is snapped to whole pixels.
     property real dpr: 1
     implicitHeight: Theme.px(Theme.barHeight, dpr)
@@ -53,6 +61,7 @@ Pill {
     }
     Canvas {
         id: progressRing
+        z: 101    // on the border, above the Frame
         readonly property real lw: 2
         // Follows load progress; on completion it runs to 1 and the ring then fades
         // out in place (it never rewinds). A new load restarts from its own value.

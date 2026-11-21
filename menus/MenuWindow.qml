@@ -155,11 +155,12 @@ PanelWindow {
         clip: true
         radius: geometry.radius
         color: Theme.surface
-        border.width: 1
-        border.color: Theme.border
+        // Border as a Frame above the island and the page, so neither can cover it.
+        border.width: 0
         width: geometry.width
         height: geometry.height
         opacity: 1
+        Frame {}
         Island {
             showProgress: false
             anchors.horizontalCenter: parent.horizontalCenter
@@ -168,7 +169,7 @@ PanelWindow {
             height: geometry.collapsedHeight
             dpr: win.devicePixelRatio
             color: "transparent"
-            border.width: 0
+            framed: false
             opacity: handoff.islandOpacity
             Behavior on opacity {
                 enabled: win.open

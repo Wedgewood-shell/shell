@@ -92,16 +92,13 @@ Item {
             font.pixelSize: 14
             font.weight: Font.DemiBold
         }
-        // Long addresses fade out instead of eliding. Kept off the island's top and
-        // bottom border (1px, plus a pixel for its antialiasing), or it would fade the
-        // border out too.
+        // Long addresses fade out instead of eliding. (The island's border is a Frame
+        // above this, so the fade can't cover it.)
         Rectangle {
             visible: urlText.implicitWidth > urlBox.width
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            anchors.topMargin: 2
-            anchors.bottomMargin: 2
             width: 48
             gradient: Gradient {
                 orientation: Gradient.Horizontal

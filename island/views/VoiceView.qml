@@ -98,15 +98,13 @@ Item {
                 }
             }
         }
-        // Fade the clipped edges. Kept off the island's top and bottom border (1px, plus
-        // a pixel for its antialiasing), or they would fade the border out too.
+        // Fade the clipped edges. (The island's border is a Frame above this, so the
+        // fades can't cover it.)
         Rectangle {
             visible: box.overflow > 0 && label.x < -1
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            anchors.topMargin: 2
-            anchors.bottomMargin: 2
             width: 32
             gradient: Gradient {
                 orientation: Gradient.Horizontal
@@ -125,8 +123,6 @@ Item {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            anchors.topMargin: 2
-            anchors.bottomMargin: 2
             width: 32
             gradient: Gradient {
                 orientation: Gradient.Horizontal

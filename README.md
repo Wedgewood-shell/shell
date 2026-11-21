@@ -165,6 +165,10 @@ horizontal action tiles.
 
 1. Create a view in `island/views/`, importing `"../.."`.
 2. Expose its content through `implicitWidth` and animate its `active` state.
+   Draw freely inside the island, overlays included (edge fades, masks): its border
+   is a `Frame` (`components/Frame.qml`) stacked above the views (`z: 100`), so
+   nothing a view draws can cover it. Fill fades with `Theme.surface`; anything
+   meant to sit on the border itself goes above it (the page-load ring uses `z: 101`).
 3. Register the type in `qmldir`, instantiate it in `island/Island.qml`, and include
    its width in the mode selection there.
 4. Emit a signal from its service and route it in `Integration.qml` using
