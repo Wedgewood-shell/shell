@@ -206,7 +206,7 @@ quickshell ipc call launcher camera
 ```
 
 hyprbeam launcher (Mod+Space; menu mode `hyprbeam`), a frontend for the
-[hyprbeam](~/Projects/hyprbeam) daemon (apps, calculator, niri windows, plugins):
+hyprbeam daemon (`~/Projects/hyprbeam`) (apps, calculator, niri windows, plugins):
 
 ```sh
 quickshell ipc call launcher hyprbeam
