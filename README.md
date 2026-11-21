@@ -46,10 +46,9 @@ The bar, window switcher and menu pill each animate the same transition.
 Smart fullscreen: when that full-width window is one of
 `Settings.smartFullscreenApps` (currently kitty), the compact bar reserves no
 space (`exclusiveZone: 0`), so the window grows to the whole output underneath
-it. The strip then drops its tint and asks niri to blur what is behind it
-(`BackgroundEffect.blurRegion`). niri's config has a matching `island-bar` layer
-rule with `xray false`, or the blur would show the wallpaper instead of the
-window. The blur is uniform; a top-to-bottom blur gradient needs niri support.
+it. The strip's solid tint becomes a gradient instead: full
+`Theme.compactBackground` at the top edge, fading to transparent at the bottom of
+the bar surface (a little past the strip), so there is no hard edge over the window.
 
 Both menu and workspace-HUD geometry use `components/IslandMorph.qml`: one
 animation progress value interpolates width, height and radius together, with

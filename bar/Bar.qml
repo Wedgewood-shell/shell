@@ -19,7 +19,7 @@ PanelWindow {
         }
     }
     // Smart fullscreen (Settings.smartFullscreenApps): a compact bar that reserves no
-    // space, so the window extends underneath it, and blurs it instead of tinting.
+    // space, so the window extends underneath it, with a fading tint instead of a solid one.
     readonly property bool smart: compact && NiriService.smartFullscreenOn(modelData.name, modelData.width)
     property real s: smart ? 1 : 0
     Behavior on s {
@@ -44,11 +44,6 @@ PanelWindow {
     exclusiveZone: smart ? 0 : compact ? Theme.compactBarHeight : Theme.topMargin + 50
     color: "transparent"
     WlrLayershell.namespace: "island-bar"
-    // niri blurs the window below (needs the island-bar layer rule with `xray false`
-    // in niri's config.kdl, or it blurs the wallpaper instead).
-    BackgroundEffect.blurRegion: Region {
-        item: bar.smart ? background : null
-    }
     mask: Region {
         item: hitArea
     }
@@ -64,9 +59,30 @@ PanelWindow {
         width: parent.width
         height: bar.stripY + bar.stripH
         color: Theme.compactBackground
-        // Smart fullscreen: no tint, only the blur behind it.
         opacity: bar.c * (1 - bar.s)
-        visible: bar.c > 0
+        visible: opacity > 0
+    }
+    // Smart fullscreen: the tint fades from the top edge to nothing, running a little
+    // past the strip (to the surface bottom) so there is no hard edge over the window.
+    Rectangle {
+        width: parent.width
+        height: parent.height
+        opacity: bar.c * bar.s
+        visible: opacity > 0
+        gradient: Gradient {
+            GradientStop {
+                position: 0
+                color: Theme.compactBackground
+            }
+            GradientStop {
+                position: bar.stripH / Math.max(1, bar.height) * 0.5
+                color: Theme.alpha(Theme.background, Theme.kittyOpacity * 0.7)
+            }
+            GradientStop {
+                position: 1
+                color: Theme.alpha(Theme.background, 0)
+            }
+        }
     }
 
     Item {
