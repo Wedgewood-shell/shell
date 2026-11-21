@@ -165,15 +165,23 @@ Singleton {
     // fullscreen. Only the width is compared, so the bar's exclusive zone (which
     // changes the window's height) cannot feed back into it.
     function spansOutput(output, outputWidth) {
+        return spanningWindow(output, outputWidth) !== null
+    }
+    // Same, limited to smart-fullscreen apps (Settings.smartFullscreenApps).
+    function smartFullscreenOn(output, outputWidth) {
+        const w = spanningWindow(output, outputWidth)
+        return w !== null && Settings.smartFullscreenApps.indexOf(w.app_id) >= 0
+    }
+    function spanningWindow(output, outputWidth) {
         for (const k in workspaces) {
             const ws = workspaces[k]
             if (ws.output !== output || !ws.is_active)
                 continue
             const w = ws.active_window_id != null ? windows[ws.active_window_id] : null
             const size = w && w.layout ? w.layout.window_size : null
-            return !!size && outputWidth > 0 && size[0] >= outputWidth - 1
+            return size && outputWidth > 0 && size[0] >= outputWidth - 1 ? w : null
         }
-        return false
+        return null
     }
     function wsOnOutput(output) {
         const out = []

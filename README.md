@@ -43,6 +43,14 @@ matching exclusive zone. `NiriService.spansOutput()` detects this from
 `window_size` width only, so the exclusive-zone change cannot feed back into it.
 The bar, window switcher and menu pill each animate the same transition.
 
+Smart fullscreen: when that full-width window is one of
+`Settings.smartFullscreenApps` (currently kitty), the compact bar reserves no
+space (`exclusiveZone: 0`), so the window grows to the whole output underneath
+it. The strip then drops its tint and asks niri to blur what is behind it
+(`BackgroundEffect.blurRegion`). niri's config has a matching `island-bar` layer
+rule with `xray false`, or the blur would show the wallpaper instead of the
+window. The blur is uniform; a top-to-bottom blur gradient needs niri support.
+
 Both menu and workspace-HUD geometry use `components/IslandMorph.qml`: one
 animation progress value interpolates width, height and radius together, with
 coalesced target updates and support for reversal and live menu resizing.

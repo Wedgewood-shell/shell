@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Wayland
 import ".."
 
 PanelWindow {
@@ -12,6 +13,16 @@ PanelWindow {
     readonly property bool compact: NiriService.spansOutput(modelData.name, modelData.width)
     property real c: compact ? 1 : 0
     Behavior on c {
+        NumberAnimation {
+            duration: Theme.compactDuration
+            easing.type: Easing.InOutCubic
+        }
+    }
+    // Smart fullscreen (Settings.smartFullscreenApps): a compact bar that reserves no
+    // space, so the window extends underneath it, and blurs it instead of tinting.
+    readonly property bool smart: compact && NiriService.smartFullscreenOn(modelData.name, modelData.width)
+    property real s: smart ? 1 : 0
+    Behavior on s {
         NumberAnimation {
             duration: Theme.compactDuration
             easing.type: Easing.InOutCubic
@@ -30,8 +41,14 @@ PanelWindow {
     }
     implicitHeight: Theme.surfaceSize(Theme.topMargin + Theme.px(Theme.barHeight, devicePixelRatio), devicePixelRatio)
     // Switches at once (windows resize once, not every frame).
-    exclusiveZone: compact ? Theme.compactBarHeight : Theme.topMargin + 50
+    exclusiveZone: smart ? 0 : compact ? Theme.compactBarHeight : Theme.topMargin + 50
     color: "transparent"
+    WlrLayershell.namespace: "island-bar"
+    // niri blurs the window below (needs the island-bar layer rule with `xray false`
+    // in niri's config.kdl, or it blurs the wallpaper instead).
+    BackgroundEffect.blurRegion: Region {
+        item: bar.smart ? background : null
+    }
     mask: Region {
         item: hitArea
     }
@@ -47,8 +64,9 @@ PanelWindow {
         width: parent.width
         height: bar.stripY + bar.stripH
         color: Theme.compactBackground
-        opacity: bar.c
-        visible: opacity > 0
+        // Smart fullscreen: no tint, only the blur behind it.
+        opacity: bar.c * (1 - bar.s)
+        visible: bar.c > 0
     }
 
     Item {
