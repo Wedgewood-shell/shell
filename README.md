@@ -45,7 +45,10 @@ The bar, window switcher and menu pill follow the same continuous value
 (`core/BarMode.qml` via `components/BarModeFollower.qml`). It mirrors the niri
 fork's full-width-to-edges blend: each full-width column's progress is
 `smoothstep(1 - |column x - camera x - gap| / (25% of the output width))`, from the
-live `view_pos` in niri's view stream. Workspace switches crossfade by the vertical
+live `view_pos` in niri's view stream. Adjacent full-width columns form a run that
+blends as one (distance is to the run, not the column), so swiping between two
+maximized windows stays compact; the solid/gradient tint crossfades between them.
+Workspace switches crossfade by the vertical
 camera position. So the bar grows and shrinks with swipes and niri's view
 animations, frame by frame. Changes without camera movement (maximizing in place)
 ease over `Theme.compactDuration`. The exclusive zone still switches once, with the

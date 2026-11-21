@@ -10,8 +10,9 @@ import ".."
 // during swipes and niri's own view animations.
 //
 // state() returns { plain, smart, driven }:
-//   plain   0..1, compactness from full-width windows of ordinary apps
+//   plain   0..1, compactness from full-width windows of ordinary apps (solid tint)
 //   smart   0..1, the same for Settings.smartFullscreenApps (tint gradient)
+//   (they split one value: plain + smart is the compactness, at most 1)
 //   driven  niri's camera is moving: follow the values directly, don't animate
 // At rest the active window decides (whole values, same rule as the exclusive zone).
 Singleton {
@@ -60,21 +61,34 @@ Singleton {
             col.width = Math.max(col.width, w.layout.tile_size ? w.layout.tile_size[0] : 0)
             col.kind = spanKind(w, outputWidth) || col.kind
         }
-        // niri: progress = smoothstep(1 - |col_x - view_pos - aligned_x| / blend), with
-        // aligned_x the working area's left gap and blend a fraction of its width.
-        const blend = Math.max(1, outputWidth * blendFraction)
-        let x = 0, plain = 0, smart = 0
+        // Each column's aligned camera position (col_x minus the working area's left gap).
+        const list = []
+        let x = 0
         for (const k of Object.keys(cols).map(Number).sort((a, b) => a - b)) {
-            const col = cols[k]
-            if (col.kind) {
-                const near = 1 - Math.min(1, Math.abs(x - view.viewPos - gaps) / blend)
-                const p = near * near * (3 - 2 * near)
-                if (col.kind === "smart")
-                    smart = Math.max(smart, p)
-                else
-                    plain = Math.max(plain, p)
-            }
-            x += col.width + gaps
+            list.push({ at: x - gaps, kind: cols[k].kind })
+            x += cols[k].width + gaps
+        }
+        // niri: adjacent full-width columns form a run that blends as one,
+        // progress = smoothstep(1 - (camera distance to the run) / blend). So swiping
+        // between two of them stays compact the whole way.
+        const v = view.viewPos
+        const blend = Math.max(1, outputWidth * blendFraction)
+        let plain = 0, smart = 0
+        for (let i = 0; i < list.length; i++) {
+            if (!list[i].kind)
+                continue
+            let end = i
+            while (end + 1 < list.length && list[end + 1].kind)
+                end++
+            const from = list[i].at, to = list[end].at
+            const distance = v < from ? from - v : v > to ? v - to : 0
+            const near = 1 - Math.min(1, distance / blend)
+            const p = near * near * (3 - 2 * near)
+            // Solid vs gradient tint: interpolated between the run's columns by the camera.
+            const share = smartShare(list, i, end, clamp(v, from, to))
+            plain = Math.max(plain, p * (1 - share))
+            smart = Math.max(smart, p * share)
+            i = end
         }
         return { plain: plain, smart: smart, driven: true }
     }
@@ -85,6 +99,19 @@ Singleton {
         if (!size || outputWidth <= 0 || size[0] < outputWidth - 1)
             return ""
         return Settings.smartFullscreenApps.indexOf(w.app_id) >= 0 ? "smart" : "plain"
+    }
+
+    // 0..1: how much of the run at camera position v is a smart-fullscreen app.
+    function smartShare(list, start, end, v) {
+        const isSmart = i => list[i].kind === "smart" ? 1 : 0
+        for (let i = start; i < end; i++) {
+            const a = list[i].at, b = list[i + 1].at
+            if (v <= b) {
+                const t = b - a < 1 ? 1 : (v - a) / (b - a)
+                return isSmart(i) + (isSmart(i + 1) - isSmart(i)) * t
+            }
+        }
+        return isSmart(end)
     }
 
     function clamp(v, lo, hi) {

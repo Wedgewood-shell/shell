@@ -13,8 +13,9 @@ Scope {
     readonly property var state: BarMode.state(output, outputWidth)
     property real plain: state.plain
     property real smart: state.smart
-    // 0 = normal, 1 = compact
-    readonly property real c: Math.max(plain, smart)
+    // 0 = normal, 1 = compact. plain and smart split it (a swipe between a smart and an
+    // ordinary full-width window crossfades the tint), so it is their sum.
+    readonly property real c: Math.min(1, plain + smart)
 
     Behavior on plain {
         enabled: !follower.state.driven
