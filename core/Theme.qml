@@ -73,15 +73,43 @@ Singleton {
     // a flush full-width strip with modules scaled down.
     readonly property real compactScale: 0.9
     readonly property int compactBarHeight: 40
-    readonly property int compactPadding: 10
+    readonly property int compactPadding: 8
     readonly property color compactBackground: alpha(background, kittyOpacity)
     readonly property int compactDuration: 260
-    // Top of a scaled module when centred in the compact strip.
-    readonly property real compactTop: (compactBarHeight - barHeight * compactScale) / 2
+    // Compact sizes of bordered pills, kept on whole device pixels: each axis gets
+    // its own scale (xScale = compactLengthEven(w) / w, ...), within 0.5% of compactScale.
+    function compactLength(v, dpr) {
+        return px(v * compactScale, dpr)
+    }
+    function compactLengthEven(v, dpr) {
+        return pxEven(v * compactScale, dpr)
+    }
+    // Top of a compact pill of (unscaled) height h, centred in the strip.
+    function compactTopFor(h, dpr) {
+        return px((compactBarHeight - compactLength(h, dpr)) / 2, dpr)
+    }
     readonly property int closedRadius: 12
     readonly property int openRadius: 18
     readonly property int fadeDuration: 180
     readonly property int morphDuration: 400
+    // Snap to the physical pixel grid. dpr must be the window's devicePixelRatio
+    // (1.25 here), not Screen's (niri's integer output scale, 2). With fractional
+    // scaling a 1px border on a fractional edge smears over two dim pixels.
+    function px(v, dpr) {
+        return Math.round(v * dpr) / dpr
+    }
+    // A width whose edges both land on whole pixels when centred on a whole pixel.
+    function pxEven(v, dpr) {
+        return Math.round(v * dpr / 2) * 2 / dpr
+    }
+    // Smallest whole logical surface size >= v that is also whole in device pixels.
+    // Otherwise the compositor rescales the buffer (62.5px tall) and blurs it all.
+    function surfaceSize(v, dpr) {
+        for (let s = Math.ceil(v - 1e-6); s < Math.ceil(v) + 16; s++)
+            if (Math.abs(s * dpr - Math.round(s * dpr)) < 1e-6)
+                return s
+        return Math.ceil(v)
+    }
     function cp(n) {
         return String.fromCodePoint(n)
     }

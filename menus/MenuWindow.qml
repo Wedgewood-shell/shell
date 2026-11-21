@@ -25,8 +25,9 @@ PanelWindow {
     onVisibleChanged: OverlayController.launcherMapped = visible
     color: "transparent"
     anchors.top: true
-    implicitWidth: 720
-    implicitHeight: Theme.topMargin + Math.max(640, layoutHeight + 64 + detailSpace)
+    // Whole device pixels too, or niri rescales (and blurs) the buffer.
+    implicitWidth: Theme.surfaceSize(720, devicePixelRatio)
+    implicitHeight: Theme.surfaceSize(Theme.topMargin + Math.max(640, layoutHeight + 64 + detailSpace), devicePixelRatio)
     // On a compact bar (see Bar.qml) the closed pill matches the shrunken island, and
     // grows to full size and position as the menu opens.
     readonly property bool compact: screen ? NiriService.spansOutput(screen.name, screen.width) : false
@@ -93,15 +94,18 @@ PanelWindow {
     IslandMorph {
         id: geometry
         expanded: win.open
+        // Snapped to whole pixels (the pill is centred on one), matching the bar island.
         collapsedWidth: win.closedWidth
-        expandedWidth: win.layoutWidth
-        expandedHeight: win.layoutHeight
+        collapsedHeight: Theme.px(Theme.barHeight, win.devicePixelRatio)
+        expandedWidth: Theme.pxEven(win.layoutWidth, win.devicePixelRatio)
+        expandedHeight: Theme.px(win.layoutHeight, win.devicePixelRatio)
         duration: win.open ? Theme.morphDuration : win.closeDuration
     }
     IslandHandoff {
         id: handoff
         surface: win
         expanded: win.open
+        collapsedHeight: geometry.collapsedHeight
         currentHeight: pill.height
         expandedHeight: win.layoutHeight
         morphing: geometry.running
@@ -141,9 +145,14 @@ PanelWindow {
     Rectangle {
         id: pill
         anchors.horizontalCenter: parent.horizontalCenter
-        y: Theme.topMargin + (Theme.compactTop - Theme.topMargin) * win.closedC
-        scale: 1 - (1 - Theme.compactScale) * win.closedC
-        transformOrigin: Item.Top
+        anchors.alignWhenCentered: false   // see Bar.qml; the width is pixel-snapped
+        // Closed on a compact bar it matches the bar's island exactly (see Bar.qml).
+        y: Theme.topMargin + (Theme.compactTopFor(geometry.collapsedHeight, win.devicePixelRatio) - Theme.topMargin) * win.closedC
+        transform: Scale {
+            origin.x: pill.width / 2
+            xScale: 1 + (Theme.compactLengthEven(pill.width, win.devicePixelRatio) / Math.max(1, pill.width) - 1) * win.closedC
+            yScale: 1 + (Theme.compactLength(pill.height, win.devicePixelRatio) / Math.max(1, pill.height) - 1) * win.closedC
+        }
         clip: true
         radius: geometry.radius
         color: Theme.surface
@@ -157,7 +166,8 @@ PanelWindow {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
             width: parent.width
-            height: Theme.barHeight
+            height: geometry.collapsedHeight
+            dpr: win.devicePixelRatio
             color: "transparent"
             border.width: 0
             opacity: handoff.islandOpacity

@@ -8,6 +8,7 @@ Scope {
     id: morph
     property bool expanded: false
     property real collapsedWidth: Theme.islandBaseWidth
+    property real collapsedHeight: Theme.barHeight
     property real expandedWidth: 620
     property real expandedHeight: Theme.barHeight
     property int duration: Theme.morphDuration
@@ -16,13 +17,13 @@ Scope {
     property bool initialized: false
     property real progress: 1
     property real fromWidth: 0
-    property real fromHeight: Theme.barHeight
+    property real fromHeight: collapsedHeight
     property real fromRadius: Theme.closedRadius
     property real toWidth: 0
-    property real toHeight: Theme.barHeight
+    property real toHeight: collapsedHeight
     property real toRadius: Theme.closedRadius
     readonly property real targetWidth: expanded ? expandedWidth : collapsedWidth
-    readonly property real targetHeight: expanded ? expandedHeight : Theme.barHeight
+    readonly property real targetHeight: expanded ? expandedHeight : collapsedHeight
     readonly property real targetRadius: expanded ? Theme.openRadius : Theme.closedRadius
     readonly property real width: fromWidth + (toWidth - fromWidth) * progress
     readonly property real height: fromHeight + (toHeight - fromHeight) * progress

@@ -9,9 +9,10 @@ Scope {
     id: handoff
     required property var surface
     property bool expanded: false
-    property real currentHeight: Theme.barHeight
-    property real expandedHeight: Theme.barHeight
-    readonly property real collapseProgress: expanded ? 0 : Math.max(0, Math.min(1, 1 - (currentHeight - Theme.barHeight) / Math.max(1, expandedHeight - Theme.barHeight)))
+    property real collapsedHeight: Theme.barHeight
+    property real currentHeight: collapsedHeight
+    property real expandedHeight: collapsedHeight
+    readonly property real collapseProgress: expanded ? 0 : Math.max(0, Math.min(1, 1 - (currentHeight - collapsedHeight) / Math.max(1, expandedHeight - collapsedHeight)))
     readonly property real contentOpacity: expanded ? 1 : 1 - fade(0, 0.8, collapseProgress)
     readonly property real islandOpacity: expanded ? 0 : fade(0.65, 1, collapseProgress)
 

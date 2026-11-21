@@ -28,7 +28,7 @@ PanelWindow {
         left: true
         right: true
     }
-    implicitHeight: Theme.topMargin + Theme.barHeight
+    implicitHeight: Theme.surfaceSize(Theme.topMargin + Theme.px(Theme.barHeight, devicePixelRatio), devicePixelRatio)
     // Switches at once (windows resize once, not every frame).
     exclusiveZone: compact ? Theme.compactBarHeight : Theme.topMargin + 50
     color: "transparent"
@@ -63,8 +63,19 @@ PanelWindow {
         // ---- center: dynamic island ----
         Island {
             anchors.horizontalCenter: parent.horizontalCenter
-            anchors.verticalCenter: parent.verticalCenter
-            scale: bar.moduleScale
+            // Centring rounds to whole logical pixels by default, which at a fractional
+            // scale lands the edges on half device pixels; the width is snapped instead.
+            anchors.alignWhenCentered: false
+            id: island
+            dpr: bar.devicePixelRatio
+            // Top-aligned (not centred) so every edge stays on a whole device pixel,
+            // also when compact (see Theme.compactLength).
+            y: Theme.compactTopFor(height, dpr) * bar.c
+            transform: Scale {
+                origin.x: island.width / 2
+                xScale: 1 + (Theme.compactLengthEven(island.width, island.dpr) / Math.max(1, island.width) - 1) * bar.c
+                yScale: 1 + (Theme.compactLength(island.height, island.dpr) / Math.max(1, island.height) - 1) * bar.c
+            }
             opacity: (OverlayController.launcherBusy && OverlayController.launcherScreen === bar.modelData.name) ? 0 : 1
             Behavior on opacity {
                 NumberAnimation {

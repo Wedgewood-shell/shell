@@ -47,7 +47,8 @@ PanelWindow {
         font.weight: Font.DemiBold
     }
     readonly property int openPillW: 210
-    readonly property int pillH: Theme.barHeight
+    // Snapped to whole pixels so the pill's 1px border stays crisp.
+    readonly property real pillH: Theme.px(Theme.barHeight, devicePixelRatio)
     readonly property real islandW: OverlayController.islandWidths[outputName] ?? Theme.islandBaseWidth
     readonly property real room: Math.max(0, modelData.width / 2 - islandW / 2 - 24 - 16)
     readonly property real idleMax: Math.min(Theme.windowTitleMaxWidth, room)
@@ -70,8 +71,9 @@ PanelWindow {
         left: true
     }
     // Fixed surface; only the content animates.
-    implicitWidth: Math.max(1, Math.round(modelData.width / 2)) + 16
-    implicitHeight: Theme.topMargin + pillH / 2 + lift + adjPitch + 2 * pitch + tileH
+    // Whole device pixels too, or niri rescales (and blurs) the buffer.
+    implicitWidth: Theme.surfaceSize(Math.max(1, Math.round(modelData.width / 2)) + 16, devicePixelRatio)
+    implicitHeight: Theme.surfaceSize(Theme.topMargin + pillH / 2 + lift + adjPitch + 2 * pitch + tileH, devicePixelRatio)
     exclusionMode: ExclusionMode.Ignore
     color: "transparent"
     WlrLayershell.namespace: "window-switcher"
@@ -152,7 +154,9 @@ PanelWindow {
     // At rest a pill fits its title; open, every pill is openPillW wide.
     function pillWidthFor(title) {
         const rest = Math.max(54, Math.min(idleMax, titleFont.advanceWidth(title) + 54))
-        return rest + (openPillW - rest) * e
+        // Rounded up to whole pixels: rounding down would elide a title that just fits.
+        const w = rest + (openPillW - rest) * e
+        return Math.ceil(w * devicePixelRatio - 1e-6) / devicePixelRatio
     }
     function titleOf(win) {
         return win ? (win.title || win.app_id || "") : ""
@@ -450,11 +454,14 @@ PanelWindow {
     Item {
         id: stage
         x: 16 + (Theme.compactPadding - 16) * sw.c
-        y: Theme.topMargin + (Theme.compactTop - Theme.topMargin) * sw.c
+        y: Theme.topMargin + (Theme.compactTopFor(sw.pillH, sw.devicePixelRatio) - Theme.topMargin) * sw.c
         width: sw.width - 16
         height: sw.height - Theme.topMargin
-        scale: 1 - (1 - Theme.compactScale) * sw.c
-        transformOrigin: Item.TopLeft
+        // Per-axis compact scale that keeps the pill's edges on whole device pixels.
+        transform: Scale {
+            xScale: 1 + (Theme.compactLength(sw.pillW, sw.devicePixelRatio) / Math.max(1, sw.pillW) - 1) * sw.c
+            yScale: 1 + (Theme.compactLength(sw.pillH, sw.devicePixelRatio) / Math.max(1, sw.pillH) - 1) * sw.c
+        }
 
         // ---- workspace labels ----
         Repeater {

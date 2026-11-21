@@ -9,7 +9,11 @@ Pill {
     accent: Theme.border
     color: Theme.surface
     clip: true
-    implicitWidth: {
+    // The hosting window's devicePixelRatio; geometry is snapped to whole pixels.
+    property real dpr: 1
+    implicitHeight: Theme.px(Theme.barHeight, dpr)
+    implicitWidth: Theme.pxEven(baseWidth, dpr)
+    readonly property real baseWidth: {
         switch (IslandController.islandMode) {
         case "helium":
         case "voice":
