@@ -112,32 +112,18 @@ PanelWindow {
                 }
             }
 
-            // Media collapsed beside the address bar: slides out from under the island.
-            MediaChip {
-                id: mediaChip
-                readonly property bool shown: IslandController.mediaChip
-                dpr: island.dpr
-                x: shown ? island.width + Theme.chipGap : island.width - width
-                opacity: shown ? 1 : 0
-                visible: opacity > 0
-                Behavior on x {
-                    NumberAnimation {
-                        duration: 420
-                        easing.type: Easing.OutBack
-                        easing.overshoot: 1.1
-                    }
-                }
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: Theme.fadeDuration
-                    }
-                }
-            }
             Island {
                 id: island
                 dpr: bar.devicePixelRatio
+                showMedia: false    // the media pill below draws it
                 onImplicitWidthChanged: OverlayController.setIslandWidth(bar.modelData.name, implicitWidth)
                 Component.onCompleted: OverlayController.setIslandWidth(bar.modelData.name, implicitWidth)
+            }
+            // Media: over the island as its media view, or detached and collapsed
+            // into a chip beside it while the address bar has the island.
+            MediaChip {
+                dpr: island.dpr
+                islandWidth: island.width
             }
         }
 

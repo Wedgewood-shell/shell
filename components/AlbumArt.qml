@@ -15,7 +15,8 @@ ClippingRectangle {
         source: art.source
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
-        cache: true
+        // Players (Chromium) reuse temporary file paths for different covers.
+        cache: false
         smooth: true
         mipmap: true
         // Decode at the displayed size (sharp, and no full-size cover in memory).

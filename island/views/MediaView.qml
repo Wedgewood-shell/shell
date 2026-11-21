@@ -2,11 +2,14 @@ import QtQuick
 import Quickshell
 import "../.."
 
-// Base state while media plays (or is briefly paused): album art, "title — artist"
-// (scrolling like a marquee when it doesn't fit), and track progress along the bottom.
+// Base state while media plays (or is briefly paused): album art and "title — artist"
+// (scrolling like a marquee when it doesn't fit). Track progress is the border ring
+// of the pill hosting it (bar/MediaChip.qml). `collapse` morphs the layout into the
+// chip's: 0 = island, 1 = the art alone, filling a square pill edge to edge.
 Item {
     id: view
     property bool active: IslandController.islandMode === "media"
+    property real collapse: 0
     implicitWidth: Theme.islandMediaWidth - 36
     implicitHeight: 42
     opacity: active ? 1 : 0
@@ -25,10 +28,12 @@ Item {
 
     AlbumArt {
         id: art
-        anchors.verticalCenter: parent.verticalCenter
-        x: 9
-        width: 26
-        height: 26
+        readonly property real size: 26 + (view.height - 26) * view.collapse
+        x: 9 * (1 - view.collapse)
+        y: (view.height - size) / 2
+        width: size
+        height: size
+        radius: 6 + (Theme.closedRadius - 6) * view.collapse
         source: MediaService.artUrl
         opacity: MediaService.playing ? 1 : 0.6
         Behavior on opacity {
@@ -47,6 +52,8 @@ Item {
         anchors.rightMargin: 18
         height: parent.height
         clip: true
+        opacity: Math.max(0, 1 - view.collapse * 2.5)
+        visible: opacity > 0
 
         readonly property string shown: MediaService.artist ? MediaService.title + "  —  " + MediaService.artist : MediaService.title
         readonly property real overflow: Math.max(0, label.implicitWidth - width)
@@ -119,31 +126,4 @@ Item {
             }
         }
     }
-
-    // Track progress: a thin line along the bottom, between the rounded corners.
-    Item {
-        id: track
-        visible: MediaService.length > 0
-        x: Theme.closedRadius
-        width: parent.width - 2 * Theme.closedRadius
-        y: parent.height - 4
-        height: 2
-        Rectangle {
-            anchors.fill: parent
-            radius: 1
-            color: Theme.raised
-        }
-        Rectangle {
-            width: parent.width * MediaService.progress
-            height: parent.height
-            radius: 1
-            color: MediaService.playing ? Theme.highlight : Theme.muted
-            Behavior on width {
-                NumberAnimation {
-                    duration: 500
-                }
-            }
-        }
-    }
-
 }

@@ -37,12 +37,15 @@ Base states, by priority (`IslandController.baseMode`): Helium's address bar
 (a Helium window focused) > media > clock. Any base other than the clock moves the
 date/time into the bar's right module. Media (`MediaService`, MPRIS): the playing
 player, else the last one that played; active while playing and for 30 s after
-it pauses. Its view (`island/views/MediaView.qml`, 420 px) shows album art,
-"title — artist" (a marquee when long), and the track's progress as a thin line
-along the bottom. Under the address bar it collapses into `bar/MediaChip.qml`
-beside the island: the album art in a square pill whose border fills clockwise
-with the progress (`components/PerimeterProgress.qml`, shared with the page-load
-ring), dimmed while paused.
+it pauses. Its view (`island/views/MediaView.qml`, 420 px) shows album art and
+"title — artist" (a marquee when long); the track's progress is the pill's border,
+filling clockwise from the top (`components/PerimeterProgress.qml`, shared with the
+page-load ring), dimmed while paused. In the bar the media is drawn by
+`bar/MediaChip.qml`, a pill lying exactly over the island (whose own media view is
+off there). When the address bar takes the island, that pill detaches and
+collapses to the right into a square chip beside it (one `collapse` value morphs
+position, size, art and text together) while the island grows underneath; the
+album art then fills the chip edge to edge. The reverse expands it back.
 The status pill uses a larger battery indicator with the percentage inside while
 on battery, a lightning bolt while charging, and a plug when externally powered
 without charging. AC state is used to distinguish plugged-in from discharging.

@@ -8,6 +8,9 @@ Pill {
     property bool showProgress: true
     // Draw the island's border (off when hosted inside a pill that has its own).
     property bool framed: true
+    // Draw the media view (off in the bar, where bar/MediaChip.qml draws it on top so
+    // that it can detach and collapse beside the island).
+    property bool showMedia: true
     accent: Theme.border
     color: Theme.surface
     clip: true
@@ -64,6 +67,7 @@ Pill {
     MediaView {
         id: media
         anchors.fill: parent
+        visible: pill.showMedia
     }
     PerimeterProgress {
         id: progressRing
