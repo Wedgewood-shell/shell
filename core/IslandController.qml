@@ -12,7 +12,10 @@ Singleton {
     // Follows Helium: while one of its windows has focus (or the address editor
     // that took its focus is open) the island shows the address bar.
     readonly property bool heliumBase: HeliumService.active || (OverlayController.launcherOpen && OverlayController.launcherMode === "address")
-    readonly property string baseMode: heliumBase ? "helium" : "clock"
+    // Priority: Helium > media (MPRIS) > clock. Media under Helium collapses into a
+    // chip beside the island (bar/MediaChip.qml).
+    readonly property string baseMode: heliumBase ? "helium" : MediaService.active ? "media" : "clock"
+    readonly property bool mediaChip: heliumBase && MediaService.active
     property string islandMode: baseMode
     // When the island shows something other than the clock as its base,
     // the date/time moves into the bar's right module.

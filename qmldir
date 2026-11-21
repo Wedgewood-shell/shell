@@ -61,3 +61,8 @@ VoiceView island/views/VoiceView.qml
 singleton BarMode core/BarMode.qml
 BarModeFollower components/BarModeFollower.qml
 Frame components/Frame.qml
+singleton MediaService services/MediaService.qml
+MediaView island/views/MediaView.qml
+MediaChip bar/MediaChip.qml
+AlbumArt components/AlbumArt.qml
+PerimeterProgress components/PerimeterProgress.qml

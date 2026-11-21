@@ -63,6 +63,9 @@ Singleton {
     }
     readonly property int islandBaseWidth: 300
     readonly property int islandHeliumWidth: islandBaseWidth * 2
+    readonly property int islandMediaWidth: 420
+    // Between the island and a chip beside it (the collapsed media chip).
+    readonly property int chipGap: 8
     readonly property int windowTitleMaxWidth: 400
     readonly property real workspacePreviewScale: 0.4
     readonly property real workspaceIconScale: 1.5

@@ -86,19 +86,22 @@ PanelWindow {
 
         // Left: focused window / switcher lives in WindowSwitcher (its own surface).
 
-        // ---- center: dynamic island ----
-        Island {
+        // ---- center: dynamic island (+ the media chip beside it) ----
+        // The island and the chip scale together for the compact bar, about the
+        // island's centre (the island stays centred; the chip hangs off its right).
+        Item {
+            id: islandGroup
             anchors.horizontalCenter: parent.horizontalCenter
             // Centring rounds to whole logical pixels by default, which at a fractional
             // scale lands the edges on half device pixels; the width is snapped instead.
             anchors.alignWhenCentered: false
-            id: island
-            dpr: bar.devicePixelRatio
+            width: island.width
+            height: island.height
             // Top-aligned (not centred) so every edge stays on a whole device pixel,
             // also when compact (see Theme.compactLength).
-            y: Theme.compactTopFor(height, dpr) * bar.c
+            y: Theme.compactTopFor(height, island.dpr) * bar.c
             transform: Scale {
-                origin.x: island.width / 2
+                origin.x: islandGroup.width / 2
                 xScale: 1 + (Theme.compactLengthEven(island.width, island.dpr) / Math.max(1, island.width) - 1) * bar.c
                 yScale: 1 + (Theme.compactLength(island.height, island.dpr) / Math.max(1, island.height) - 1) * bar.c
             }
@@ -108,8 +111,34 @@ PanelWindow {
                     duration: Theme.islandFadeDuration
                 }
             }
-            onImplicitWidthChanged: OverlayController.setIslandWidth(bar.modelData.name, implicitWidth)
-            Component.onCompleted: OverlayController.setIslandWidth(bar.modelData.name, implicitWidth)
+
+            // Media collapsed beside the address bar: slides out from under the island.
+            MediaChip {
+                id: mediaChip
+                readonly property bool shown: IslandController.mediaChip
+                dpr: island.dpr
+                x: shown ? island.width + Theme.chipGap : island.width - width
+                opacity: shown ? 1 : 0
+                visible: opacity > 0
+                Behavior on x {
+                    NumberAnimation {
+                        duration: 420
+                        easing.type: Easing.OutBack
+                        easing.overshoot: 1.1
+                    }
+                }
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: Theme.fadeDuration
+                    }
+                }
+            }
+            Island {
+                id: island
+                dpr: bar.devicePixelRatio
+                onImplicitWidthChanged: OverlayController.setIslandWidth(bar.modelData.name, implicitWidth)
+                Component.onCompleted: OverlayController.setIslandWidth(bar.modelData.name, implicitWidth)
+            }
         }
 
         // ---- right: tray + status ----

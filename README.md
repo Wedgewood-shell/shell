@@ -26,11 +26,23 @@ This is one local QML module; each feature directory does not need its own modul
 
 The left pill shows the focused window title, elided at a maximum width of
 400 logical pixels (`Theme.windowTitleMaxWidth`). It retains the last title while
-a menu owns keyboard focus. The MPRIS/media pill is removed.
+a menu owns keyboard focus.
 
 The island's resting state is date and time, in a fixed 300-pixel pill
 (`Theme.islandBaseWidth`). The right status pill no longer duplicates the clock.
-Transient alerts return to the clock. Recording status remains in the island.
+Transient alerts return to the current base state. Recording status remains in
+the island.
+
+Base states, by priority (`IslandController.baseMode`): Helium's address bar
+(a Helium window focused) > media > clock. Any base other than the clock moves the
+date/time into the bar's right module. Media (`MediaService`, MPRIS): the playing
+player, else the last one that played; active while playing and for 30 s after
+it pauses. Its view (`island/views/MediaView.qml`, 420 px) shows album art,
+"title — artist" (a marquee when long), and the track's progress as a thin line
+along the bottom. Under the address bar it collapses into `bar/MediaChip.qml`
+beside the island: the album art in a square pill whose border fills clockwise
+with the progress (`components/PerimeterProgress.qml`, shared with the page-load
+ring), dimmed while paused.
 The status pill uses a larger battery indicator with the percentage inside while
 on battery, a lightning bolt while charging, and a plug when externally powered
 without charging. AC state is used to distinguish plugged-in from discharging.
