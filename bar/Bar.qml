@@ -168,18 +168,20 @@ PanelWindow {
                 }
                 visible: p > 0
                 height: Theme.barHeight
-                width: (barClock.implicitWidth + 26 + 8) * p
+                // 13 (status pill's right padding) + 8 = the 21px icon spacing; 13 keeps the right margin
+                width: (barClock.implicitWidth + 13 + 8) * p
                 clip: true
                 Pill {
                     anchors.right: parent.right
-                    width: barClock.implicitWidth + 26
+                    width: barClock.implicitWidth + 13
                     height: parent.height
                     color: "transparent"
                     border.width: 0
                     opacity: clockSlot.p
                     Text {
                         id: barClock
-                        anchors.centerIn: parent
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
                         text: SystemService.clockText
                         color: Theme.text
                         font.family: Theme.fontFamily
