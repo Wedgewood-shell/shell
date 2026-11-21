@@ -1,0 +1,93 @@
+pragma Singleton
+import QtQuick
+import Quickshell
+import ".."
+
+// How compact the bar is on an output, as a continuous value that follows niri's
+// camera. A full-width column (window as wide as the output) blends to the screen
+// edges as it scrolls into alignment (full-width-to-edges in the sortedcord niri
+// fork); this mirrors that blend, so the bar shrinks and grows with the windows
+// during swipes and niri's own view animations.
+//
+// state() returns { plain, smart, driven }:
+//   plain   0..1, compactness from full-width windows of ordinary apps
+//   smart   0..1, the same for Settings.smartFullscreenApps (tint gradient)
+//   driven  niri's camera is moving: follow the values directly, don't animate
+// At rest the active window decides (whole values, same rule as the exclusive zone).
+Singleton {
+    id: root
+
+    // niri: SMART_EDGES_BLEND_FRACTION (src/layout/scrolling.rs) and layout gaps.
+    readonly property real blendFraction: 0.25
+    readonly property int gaps: NiriService.layoutGap
+
+    function state(output, outputWidth) {
+        const rows = NiriService.wsOnOutput(output)
+        if (!rows.length)
+            return { plain: 0, smart: 0, driven: false }
+        const view = NiriViewService.workspaceViews[output]
+        const moving = NiriViewService.moving(view)
+        const pos = moving ? clamp(view.position, 0, rows.length - 1) : Math.max(0, rows.findIndex(w => w.is_active))
+        const i = Math.floor(pos), f = pos - i
+        const a = workspaceState(rows[i], outputWidth)
+        if (f < 1e-6 || i + 1 >= rows.length)
+            return { plain: a.plain, smart: a.smart, driven: moving || a.driven }
+        // Between two workspaces: crossfade by the vertical camera position.
+        const b = workspaceState(rows[i + 1], outputWidth)
+        return {
+            plain: a.plain + (b.plain - a.plain) * f,
+            smart: a.smart + (b.smart - a.smart) * f,
+            driven: true
+        }
+    }
+
+    function workspaceState(ws, outputWidth) {
+        const wins = NiriService.windows
+        const view = NiriViewService.columnViews[ws.id]
+        if (!NiriViewService.moving(view) || view.viewPos === undefined) {
+            const w = ws.active_window_id != null ? wins[ws.active_window_id] : null
+            const kind = spanKind(w, outputWidth)
+            return { plain: kind === "plain" ? 1 : 0, smart: kind === "smart" ? 1 : 0, driven: false }
+        }
+        // Columns left to right: width (widest tile) and whether a window spans.
+        const cols = {}
+        for (const k in wins) {
+            const w = wins[k]
+            const p = w.workspace_id === ws.id && w.layout ? w.layout.pos_in_scrolling_layout : null
+            if (!p)
+                continue
+            const col = cols[p[0]] || (cols[p[0]] = { width: 0, kind: "" })
+            col.width = Math.max(col.width, w.layout.tile_size ? w.layout.tile_size[0] : 0)
+            col.kind = spanKind(w, outputWidth) || col.kind
+        }
+        // niri: progress = smoothstep(1 - |col_x - view_pos - aligned_x| / blend), with
+        // aligned_x the working area's left gap and blend a fraction of its width.
+        const blend = Math.max(1, outputWidth * blendFraction)
+        let x = 0, plain = 0, smart = 0
+        for (const k of Object.keys(cols).map(Number).sort((a, b) => a - b)) {
+            const col = cols[k]
+            if (col.kind) {
+                const near = 1 - Math.min(1, Math.abs(x - view.viewPos - gaps) / blend)
+                const p = near * near * (3 - 2 * near)
+                if (col.kind === "smart")
+                    smart = Math.max(smart, p)
+                else
+                    plain = Math.max(plain, p)
+            }
+            x += col.width + gaps
+        }
+        return { plain: plain, smart: smart, driven: true }
+    }
+
+    // "smart" / "plain" if the window spans the output width, else "".
+    function spanKind(w, outputWidth) {
+        const size = w && w.layout ? w.layout.window_size : null
+        if (!size || outputWidth <= 0 || size[0] < outputWidth - 1)
+            return ""
+        return Settings.smartFullscreenApps.indexOf(w.app_id) >= 0 ? "smart" : "plain"
+    }
+
+    function clamp(v, lo, hi) {
+        return Math.max(lo, Math.min(hi, v))
+    }
+}

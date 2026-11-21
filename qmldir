@@ -58,3 +58,5 @@ IslandHandoff components/IslandHandoff.qml
 IslandMorph components/IslandMorph.qml
 BatteryIndicator components/BatteryIndicator.qml
 VoiceView island/views/VoiceView.qml
+singleton BarMode core/BarMode.qml
+BarModeFollower components/BarModeFollower.qml

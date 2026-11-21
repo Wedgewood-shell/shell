@@ -22,7 +22,7 @@ Singleton {
 
     // output name -> { position, target (workspace id), driver }
     property var workspaceViews: ({})
-    // workspace id -> { position, target (column index or -1), driver }
+    // workspace id -> { position, viewPos (camera x in workspace px), target (column index or -1), driver }
     property var columnViews: ({})
 
     // Emitted whenever a view changes while it is moving (driver != "Idle").
@@ -81,6 +81,7 @@ Singleton {
             const next = Object.assign({}, columnViews)
             next[v.workspace_id] = {
                 position: v.position,
+                viewPos: v.view_pos,
                 target: v.target_column == null ? -1 : v.target_column,
                 driver: v.driver
             }

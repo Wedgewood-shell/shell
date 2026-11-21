@@ -30,14 +30,12 @@ PanelWindow {
     implicitHeight: Theme.surfaceSize(Theme.topMargin + Math.max(640, layoutHeight + 64 + detailSpace), devicePixelRatio)
     // On a compact bar (see Bar.qml) the closed pill matches the shrunken island, and
     // grows to full size and position as the menu opens.
-    readonly property bool compact: screen ? NiriService.spansOutput(screen.name, screen.width) : false
-    property real c: compact ? 1 : 0
-    Behavior on c {
-        NumberAnimation {
-            duration: Theme.compactDuration
-            easing.type: Easing.InOutCubic
-        }
+    BarModeFollower {
+        id: mode
+        output: win.screen ? win.screen.name : ""
+        outputWidth: win.screen ? win.screen.width : 0
     }
+    readonly property real c: mode.c
     property real openness: open ? 1 : 0
     Behavior on openness {
         NumberAnimation {

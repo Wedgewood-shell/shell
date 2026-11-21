@@ -41,7 +41,15 @@ compact: a flush, full-width strip (`Theme.compactBackground`) of
 `Theme.compactBarHeight` with modules scaled by `Theme.compactScale`, and a
 matching exclusive zone. `NiriService.spansOutput()` detects this from
 `window_size` width only, so the exclusive-zone change cannot feed back into it.
-The bar, window switcher and menu pill each animate the same transition.
+The bar, window switcher and menu pill follow the same continuous value
+(`core/BarMode.qml` via `components/BarModeFollower.qml`). It mirrors the niri
+fork's full-width-to-edges blend: each full-width column's progress is
+`smoothstep(1 - |column x - camera x - gap| / (25% of the output width))`, from the
+live `view_pos` in niri's view stream. Workspace switches crossfade by the vertical
+camera position. So the bar grows and shrinks with swipes and niri's view
+animations, frame by frame. Changes without camera movement (maximizing in place)
+ease over `Theme.compactDuration`. The exclusive zone still switches once, with the
+active window, so windows don't resize mid-swipe.
 
 Smart fullscreen: when that full-width window is one of
 `Settings.smartFullscreenApps` (currently kitty), the compact bar reserves no

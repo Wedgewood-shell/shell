@@ -56,14 +56,12 @@ PanelWindow {
     readonly property int motion: 360
 
     // Compact bar (see Bar.qml): the module shrinks into the flush strip.
-    readonly property bool compact: NiriService.spansOutput(outputName, modelData.width)
-    property real c: compact ? 1 : 0
-    Behavior on c {
-        NumberAnimation {
-            duration: Theme.compactDuration
-            easing.type: Easing.InOutCubic
-        }
+    BarModeFollower {
+        id: mode
+        output: sw.outputName
+        outputWidth: sw.modelData.width
     }
+    readonly property real c: mode.c
 
     // The surface is flush with the screen corner; the resting margins are drawn inside it.
     anchors {

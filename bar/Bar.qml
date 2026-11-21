@@ -9,25 +9,18 @@ PanelWindow {
     screen: modelData
 
     // Compact while a window spans this output's width: the floating pills become
-    // a flush, full-width strip with a background, and modules shrink.
+    // a flush, full-width strip with a background, and modules shrink. The exclusive
+    // zone follows the active window; the look follows niri's camera (BarMode).
     readonly property bool compact: NiriService.spansOutput(modelData.name, modelData.width)
-    property real c: compact ? 1 : 0
-    Behavior on c {
-        NumberAnimation {
-            duration: Theme.compactDuration
-            easing.type: Easing.InOutCubic
-        }
-    }
     // Smart fullscreen (Settings.smartFullscreenApps): a compact bar that reserves no
     // space, so the window extends underneath it, with a fading tint instead of a solid one.
     readonly property bool smart: compact && NiriService.smartFullscreenOn(modelData.name, modelData.width)
-    property real s: smart ? 1 : 0
-    Behavior on s {
-        NumberAnimation {
-            duration: Theme.compactDuration
-            easing.type: Easing.InOutCubic
-        }
+    BarModeFollower {
+        id: mode
+        output: bar.modelData.name
+        outputWidth: bar.modelData.width
     }
+    readonly property real c: mode.c
     readonly property real moduleScale: 1 - (1 - Theme.compactScale) * c
     readonly property real stripY: Theme.topMargin * (1 - c)
     readonly property real stripH: Theme.barHeight + (Theme.compactBarHeight - Theme.barHeight) * c
@@ -59,7 +52,7 @@ PanelWindow {
         width: parent.width
         height: bar.stripY + bar.stripH
         color: Theme.compactBackground
-        opacity: bar.c * (1 - bar.s)
+        opacity: mode.plain
         visible: opacity > 0
     }
     // Smart fullscreen: the tint fades from the top edge to nothing, running a little
@@ -67,7 +60,7 @@ PanelWindow {
     Rectangle {
         width: parent.width
         height: parent.height
-        opacity: bar.c * bar.s
+        opacity: mode.smart
         visible: opacity > 0
         gradient: Gradient {
             GradientStop {
