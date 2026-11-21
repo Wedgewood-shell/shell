@@ -10,6 +10,18 @@ Singleton {
     // ---- polled system stats ----
     property int cpuUsage: 0
     property real tempC: 0
+    property int memUsage: 0
+    // The bar only shows a stat while it is notable. Temperature has hysteresis
+    // (appears above 65 degrees, hides again below 55); CPU and memory are plain thresholds.
+    readonly property bool showCpu: cpuUsage > 70
+    readonly property bool showMem: memUsage > 90
+    property bool showTemp: false
+    onTempCChanged: {
+        if (tempC > 65)
+            showTemp = true
+        else if (tempC < 55)
+            showTemp = false
+    }
     // power-profiles-daemon over D-Bus: updates on change, no polling.
     property string profile: profileName(PowerProfiles.profile)
     property var lastCpu: null
@@ -40,6 +52,11 @@ Singleton {
         blockAllReads: true
     }
     FileView {
+        id: memFile
+        path: "/proc/meminfo"
+        blockAllReads: true
+    }
+    FileView {
         id: tempFile
         path: root.tempPath
         blockAllReads: true
@@ -60,6 +77,10 @@ Singleton {
                 idle: idle
             }
         }
+        memFile.reload()
+        const mt = /MemTotal:\s+(\d+)/.exec(memFile.text()), ma = /MemAvailable:\s+(\d+)/.exec(memFile.text())
+        if (mt && ma && Number(mt[1]) > 0)
+            root.memUsage = Math.round(100 * (1 - Number(ma[1]) / Number(mt[1])))
         if (root.tempPath !== "") {
             tempFile.reload()
             const t = Number(tempFile.text().trim())

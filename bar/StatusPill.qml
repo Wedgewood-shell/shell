@@ -14,10 +14,19 @@ Pill {
         spacing: 21
 
         IconLabel {
+            visible: SystemService.showCpu
             anchors.verticalCenter: parent.verticalCenter
             text: SystemService.cpuUsage + "%"
+            color: Theme.warning
         }
         IconLabel {
+            visible: SystemService.showMem
+            anchors.verticalCenter: parent.verticalCenter
+            text: Theme.cp(0xF035B) + " " + SystemService.memUsage + "%"
+            color: Theme.warning
+        }
+        IconLabel {
+            visible: SystemService.showTemp
             anchors.verticalCenter: parent.verticalCenter
             text: (SystemService.tempC >= 90 ? Theme.cp(0xF0E01) : Theme.cp(0xF050F)) + " " + SystemService.tempC + "°"
             color: SystemService.tempC >= 90 ? Theme.danger : Theme.success
