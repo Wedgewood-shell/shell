@@ -11,7 +11,25 @@ Singleton {
     // timed / user-driven and fall back to the current base state.
     // Follows Helium: while one of its windows has focus (or the address editor
     // that took its focus is open) the island shows the address bar.
-    readonly property bool heliumBase: HeliumService.active || (OverlayController.launcherOpen && OverlayController.launcherMode === "address")
+    // A menu takes keyboard focus away from Helium, so while one is open (and
+    // briefly after, until focus returns) the base stays "helium" if Helium was
+    // the base when the menu opened.
+    property bool heliumHold: false
+    readonly property bool menuUp: OverlayController.launcherOpen
+    onMenuUpChanged: {
+        if (menuUp) {
+            holdRelease.stop()
+            heliumHold = heliumHold || HeliumService.active
+        } else {
+            holdRelease.restart()
+        }
+    }
+    Timer {
+        id: holdRelease
+        interval: 600
+        onTriggered: root.heliumHold = false
+    }
+    readonly property bool heliumBase: HeliumService.active || (OverlayController.launcherOpen && OverlayController.launcherMode === "address") || (heliumHold && HeliumService.lastFocusedId !== 0)
     // Priority: Helium > media (MPRIS) > clock. Media under Helium collapses into a
     // chip beside the island (bar/MediaChip.qml).
     readonly property string baseMode: heliumBase ? "helium" : MediaService.active ? "media" : "clock"
