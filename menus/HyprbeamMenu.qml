@@ -162,8 +162,25 @@ MenuPage {
         const d = r.item.data || {}
         if (d.kind === "browser-tab" || d.kind === "browser-url")
             openBrowserItem(d, r.action || null)
+        else if (d.kind === "file")
+            openFileItem(d, r.action || null)
         else
             HyprbeamService.activate(r.item.id, r.action || null)
+    }
+    // File results (hyprbeam's files plugin) are only found daemon-side; the shell opens them.
+    function openFileItem(d, action) {
+        if (action === "copy") {
+            Quickshell.execDetached(["wl-copy", "--", d.path])
+            return
+        }
+        if (action === "reveal") {
+            // Select the item in the file manager; fall back to opening its folder.
+            const uri = "file://" + d.path.split("/").map(encodeURIComponent).join("/")
+            Quickshell.execDetached(["sh", "-c",
+                                     "busctl --user call org.freedesktop.FileManager1 /org/freedesktop/FileManager1 org.freedesktop.FileManager1 ShowItems ass 1 \"$1\" \"\" || exec xdg-open \"$(dirname \"$2\")\"", "sh", uri, d.path])
+            return
+        }
+        Quickshell.execDetached(["xdg-open", d.path])
     }
     // Browser results (hyprbeam's helide plugin) are only found daemon-side; the shell opens them.
     function openBrowserItem(d, action) {
