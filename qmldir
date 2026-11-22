@@ -64,3 +64,5 @@ MediaChip bar/MediaChip.qml
 AlbumArt components/AlbumArt.qml
 PerimeterProgress components/PerimeterProgress.qml
 AlertView island/views/AlertView.qml
+singleton SwitcherController core/SwitcherController.qml
+SwitcherList workspace/SwitcherList.qml

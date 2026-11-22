@@ -28,6 +28,16 @@ The left pill shows the focused window title, elided at a maximum width of
 400 logical pixels (`Theme.windowTitleMaxWidth`). It retains the last title while
 a menu owns keyboard focus.
 
+Window switcher: Mod+Tab lists every window, Alt+Tab the focused app's windows (most
+recently used first; Tab / Shift+Tab cycle, Escape cancels, releasing the modifier
+switches). niri owns the keys and the selection (niri fork, `recent-windows { external }`,
+see its FORK.md; Tab pressed just before Mod/Alt counts as Mod+Tab) and sends
+`RecentWindowsChanged` events. `core/SwitcherController.qml` follows them and
+`workspace/SwitcherList.qml` draws the list in place of the left module (which fades
+out), after `SwitcherController.showDelay` (250 ms): a quick tap switches with no UI,
+and a second Tab shows the list at once. `quickshell ipc call switcher demo <n>` /
+`end` preview the list without the keys.
+
 The island's resting state is date and time, in a fixed 300-pixel pill
 (`Theme.islandBaseWidth`). The right status pill no longer duplicates the clock.
 Transient alerts return to the current base state. Recording status remains in

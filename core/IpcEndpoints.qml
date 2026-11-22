@@ -34,6 +34,26 @@ Scope {
         }
     }
 
+    // Preview of the window switcher's list without niri's switcher keys.
+    IpcHandler {
+        target: "switcher"
+        function demo(step: int): void {
+            const ids = Object.keys(NiriService.windows).map(Number)
+            SwitcherController.apply({
+                                         "open": true,
+                                         "windows": ids,
+                                         "selected": ids.length ? ids[step % ids.length] : null
+                                     })
+        }
+        function end(): void {
+            SwitcherController.apply({
+                                         "open": false,
+                                         "windows": [],
+                                         "selected": null
+                                     })
+        }
+    }
+
     IpcHandler {
         target: "voice"
         function say(text: string): void {

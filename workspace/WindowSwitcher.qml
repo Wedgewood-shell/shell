@@ -451,8 +451,19 @@ PanelWindow {
         }
     }
 
+    // The window switcher's list takes this module's place while it is shown.
+    readonly property bool switcherOn: SwitcherController.shown && SwitcherController.screen === outputName
+    property real stageOpacity: switcherOn ? 0 : 1
+    Behavior on stageOpacity {
+        NumberAnimation {
+            duration: 120
+        }
+    }
+
     Item {
         id: stage
+        opacity: sw.stageOpacity
+        visible: opacity > 0.01
         x: 16 + (Theme.compactPadding - 16) * sw.c
         y: Theme.topMargin + (Theme.compactTopFor(sw.pillH, sw.devicePixelRatio) - Theme.topMargin) * sw.c
         width: sw.width - 16
