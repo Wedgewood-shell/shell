@@ -63,7 +63,7 @@ MenuPage {
             items.sort((a, b) => b.ts - a.ts)
         }
         // Helium tabs that aren't already their window's visible tab (the active ones are the window entries above)
-        const heliumIcon = page.iconFor("helium")
+        const heliumIcon = page.iconFor("helide")
         let tabs = (NiriService.tabData || []).filter(t => !t.active).map(t => {
             let host = ""
             try {

@@ -198,12 +198,12 @@ MenuPage {
         if (action === "here" && HeliumService.connected)
             HeliumService.navigate(d.url)
         else
-            Quickshell.execDetached(["sh", "-c", "exec \"$HOME/.local/bin/helium-browser\" \"$1\"", "sh", d.url])
+            Quickshell.execDetached(["sh", "-c", "exec \"$HOME/.local/bin/helide\" \"$1\"", "sh", d.url])
         focusBrowser()
     }
     // The most recently focused Helium window, which is where a new tab opens.
     function focusBrowser() {
-        const wins = NiriService.windowData.filter(w => w.app_id.toLowerCase().startsWith("helium"))
+        const wins = NiriService.windowData.filter(w => w.app_id.toLowerCase().startsWith("helide"))
         if (!wins.length)
             return
         wins.sort((a, b) => b.ts - a.ts)
