@@ -25,6 +25,42 @@ if [[ "${1:-}" == stop ]]; then
     exit 0
 fi
 
+# Whatever is focused now gets focus back when the capture is over: the region
+# selector and the annotation window both take it while they are open.
+focused_id() {
+    niri msg --json focused-window 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["id"] if d else "")' 2>/dev/null
+}
+prev_focus=$(focused_id)
+freeze_file=''
+cleanup() {
+    if [[ -n "$freeze_file" ]]; then
+        quickshell ipc call freeze stop >/dev/null 2>&1
+        rm -f "$freeze_file"
+    fi
+    if [[ -n "$prev_focus" && "$(focused_id)" != "$prev_focus" ]]; then
+        niri msg action focus-window --id "$prev_focus" >/dev/null 2>&1
+    fi
+}
+trap cleanup EXIT
+
+# Region selection over a frozen picture of the screen: grab it, show it on top of
+# everything, and crop the final image from the same picture, so what gets
+# captured is what was on screen when the capture started.
+freeze_screen() {
+    freeze_file="$runtime/freeze-$$.png"
+    local info
+    info=$(python3 "$HOME/.config/quickshell/scripts/freeze.py" grab "$freeze_file") || { freeze_file=''; return 1; }
+    # shellcheck disable=SC2086
+    set -- $info
+    quickshell ipc call freeze start "$freeze_file" "$1" "$2" "$3" >/dev/null 2>&1 || return 0
+    local i
+    for i in $(seq 40); do
+        [[ "$(quickshell ipc call freeze ready 2>/dev/null)" == true ]] && break
+        sleep 0.025
+    done
+    sleep 0.05 # a frame or two for the compositor to present it
+}
+
 capture_kind=${1:?kind}
 scope=${2:?scope}
 # Third argument: window id for scope=window, output name for scope=screen.
@@ -46,6 +82,7 @@ if [[ "$scope" == area || "$scope" == window ]]; then
             record_output=${selection%%|*}
             geometry=${selection#*|}
         else
+            [[ "$capture_kind" == screenshot ]] && freeze_screen
             geometry=$(slurp -d -c '#8bd5cf' -s '#8bd5cf33' -w 2) || exit 0
             [[ -n "$geometry" ]] || exit 0
         fi
@@ -76,6 +113,15 @@ if [[ "$capture_kind" == screenshot ]]; then
         display=$(screen_name) || exit 1
         grim -o "$display" - | satty --filename - --output-filename "$output" --copy-command wl-copy
     else
+        if [[ -n "$freeze_file" ]]; then
+            IFS=', x' read -r gx gy gw gh <<< "$geometry"
+            python3 "$HOME/.config/quickshell/scripts/freeze.py" crop "$freeze_file" "$gx" "$gy" "$gw" "$gh" > "$freeze_file.crop" || exit 1
+            quickshell ipc call freeze stop >/dev/null 2>&1
+            satty --filename "$freeze_file.crop" --output-filename "$output" --copy-command wl-copy
+            status=$?
+            rm -f "$freeze_file.crop"
+            exit $status
+        fi
         grim -g "$geometry" - | satty --filename - --output-filename "$output" --copy-command wl-copy
     fi
     exit $?

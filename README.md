@@ -292,6 +292,11 @@ Window screenshots use `niri msg action screenshot-window` followed by
 `scripts/window-shot.py`, which composites the window geometry over black while
 leaving client-side shadows and rounded-corner cutouts untouched.
 
+Region screenshots freeze the screen first: `scripts/capture-run` grabs the desktop
+with `grim`, shows it through `core/FreezeOverlay.qml` (IPC target `freeze`) under
+`slurp`, and crops the result from that same picture with `scripts/freeze.py`. After
+any screenshot, focus goes back to the window that had it before.
+
 Those external helpers are preserved. In particular, the existing Wi-Fi helper's
 saved-profile deletion behavior has not been changed by this structural refactor.
 

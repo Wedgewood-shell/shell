@@ -124,4 +124,18 @@ Scope {
             OverlayController.openLauncher("display")
         }
     }
+
+    // Frozen screen under the region selector (see scripts/capture-run).
+    IpcHandler {
+        target: "freeze"
+        function start(file: string, x: string, y: string, scale: string): void {
+            FreezeController.show(file, Number(x), Number(y), Number(scale))
+        }
+        function ready(): bool {
+            return FreezeController.ready()
+        }
+        function stop(): void {
+            FreezeController.hide()
+        }
+    }
 }

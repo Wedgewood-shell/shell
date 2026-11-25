@@ -66,3 +66,5 @@ PerimeterProgress components/PerimeterProgress.qml
 AlertView island/views/AlertView.qml
 singleton SwitcherController core/SwitcherController.qml
 SwitcherList workspace/SwitcherList.qml
+singleton FreezeController core/FreezeController.qml
+FreezeOverlay core/FreezeOverlay.qml
