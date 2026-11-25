@@ -33,7 +33,7 @@ Singleton {
     readonly property real kittyOpacity: 0.85
     // END kitty palette
 
-    // ---- Roles (same mapping as the GTK theme in gtk-theme-tokyo-night/build.py) ----
+    // ---- Roles (same mapping as the GTK theme in gtk-theme-wedgewood/build.py) ----
     readonly property color background: kittyBackground     // pills, island, menus
     readonly property color raised: color0                  // tiles, cards, tracks, dividers
     readonly property color raisedHover: mix(color0, color8, 0.5)   // hovered/selected tiles and rows
