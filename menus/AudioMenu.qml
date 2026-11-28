@@ -3,7 +3,7 @@ import ".."
 
 MenuPage {
     id: page
-    property var data: AudioMenuService.data
+    readonly property var audioData: AudioMenuService.data
     property string section: ""
     property string streamKey: ""
     readonly property bool recording: section === "input" || section === "recording"
@@ -22,17 +22,17 @@ MenuPage {
     contentHeight: listY + Math.min(results.length, maxRows) * 46 + 38
 
     function devices(input) {
-        return data ? (input ? data.sources : data.sinks) || [] : []
+        return audioData ? (input ? audioData.sources : audioData.sinks) || [] : []
     }
     function defaultDevice(input) {
-        const name = data?.info?.[input ? "default_source_name" : "default_sink_name"]
+        const name = audioData?.info?.[input ? "default_source_name" : "default_sink_name"]
         return devices(input).find(d => d.name === name)
     }
     function label(device) {
         return device ? device.description || device.name : "No device"
     }
     function streamRows(input) {
-        const entries = data ? (input ? data.source_outputs : data.sink_inputs) || [] : []
+        const entries = audioData ? (input ? audioData.source_outputs : audioData.sink_inputs) || [] : []
         const endpoints = devices(input)
         return entries.filter(s => s.properties?.["node.passive"] !== "true").map(s => {
             const props = s.properties || ({})
@@ -49,10 +49,10 @@ MenuPage {
     function filter(q) {
         if (!section) {
             return [
-                { key: "output", kind: "section", name: "Default output", glyph: speakerGlyph, sub: label(defaultDevice(false)) },
-                { key: "input", kind: "section", name: "Default input", glyph: micGlyph, sub: label(defaultDevice(true)) },
-                { key: "playback", kind: "section", name: "Playback streams", glyph: Theme.cp(0xF040A), sub: data ? String(streamRows(false).length) : "" },
-                { key: "recording", kind: "section", name: "Recording streams", glyph: Theme.cp(0xF044A), sub: data ? String(streamRows(true).length) : "" }
+                { key: "output", kind: "section", name: "Default output", glyph: speakerGlyph, sub: audioData ? label(defaultDevice(false)) : "" },
+                { key: "input", kind: "section", name: "Default input", glyph: micGlyph, sub: audioData ? label(defaultDevice(true)) : "" },
+                { key: "playback", kind: "section", name: "Playback streams", glyph: Theme.cp(0xF040A), sub: audioData ? String(streamRows(false).length) : "" },
+                { key: "recording", kind: "section", name: "Recording streams", glyph: Theme.cp(0xF044A), sub: audioData ? String(streamRows(true).length) : "" }
             ]
         }
         const rows = [{ key: "back", kind: "back", name: "Back", glyph: Theme.cp(0xF004D), sub: "Esc" }]
@@ -96,7 +96,7 @@ MenuPage {
         const index = results.findIndex(item => item.key === key)
         currentIndex = index >= 0 ? index : initialIndex()
     }
-    onDataChanged: updateRows()
+    onAudioDataChanged: updateRows()
 
     function changeView(next, key) {
         section = next
@@ -148,7 +148,7 @@ MenuPage {
         elide: Text.ElideRight
         textFormat: Text.PlainText
         text: AudioMenuService.readError || AudioMenuService.actionError
-              || (!page.data ? "Loading audio devices…"
+              || (!page.audioData ? "Loading audio devices…"
                   : page.stream ? "Select a device to change this app’s route. WirePlumber remembers it."
                   : page.streamKey ? "This stream has closed."
                   : page.streamList && !page.streams.length ? "No active " + page.section + " streams."
