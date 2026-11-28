@@ -31,6 +31,12 @@ MenuPage {
     function label(device) {
         return device ? device.description || device.name : "No device"
     }
+    function hideOutput(device) {
+        const ports = device.ports || []
+        // Keep mixed outputs and endpoints whose connection status is unknown.
+        return Settings.hideDisconnectedHdmi && ports.length > 0
+               && ports.every(port => port.type === "HDMI" && port.availability === "not available")
+    }
     function streamRows(input) {
         const entries = audioData ? (input ? audioData.source_outputs : audioData.sink_inputs) || [] : []
         const endpoints = devices(input)
@@ -70,6 +76,8 @@ MenuPage {
         const current = defaultDevice(recording)
         const target = stream?.entry?.[recording ? "source" : "sink"]
         for (const device of devices(recording)) {
+            if (!recording && hideOutput(device))
+                continue
             // Monitor sources are useful for recording an app's audio, but aren't microphones.
             if (recording && !stream && device.monitor_source && device.name !== current?.name)
                 continue

@@ -220,7 +220,10 @@ The **Audio** menu sets the default output and microphone and lets you mute or
 reroute individual playback and recording streams. Start playing or recording in
 an app first so its stream is listed. Routes are remembered for returning streams
 by WirePlumber (`node.stream.restore-target`, enabled by default). The menu uses
-`pactl` with `pipewire-pulse`.
+`pactl` with `pipewire-pulse`. Set `hideDisconnectedHdmi` in
+`core/Settings.qml` to `false` to show unplugged HDMI/DisplayPort outputs in the
+Audio menu's device pickers. It is enabled by default and does not change
+system-wide audio settings.
 
 hyprbeam launcher (Mod+Space; menu mode `hyprbeam`), a frontend for the
 hyprbeam daemon (`~/Projects/hyprbeam`) (apps, calculator, niri windows, plugins):
