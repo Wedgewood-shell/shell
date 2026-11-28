@@ -9,6 +9,7 @@ PanelWindow {
     readonly property var pages: ({
             apps: appsPage,
             windows: windowsPage,
+            audio: audioPage,
             wifi: wifiPage,
             bluetooth: bluetoothPage,
             camera: cameraPage,
@@ -334,6 +335,10 @@ PanelWindow {
     Component {
         id: windowsPage
         WindowsMenu {}
+    }
+    Component {
+        id: audioPage
+        AudioMenu {}
     }
     Component {
         id: wifiPage

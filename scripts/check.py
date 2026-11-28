@@ -12,8 +12,8 @@ import tempfile
 import sys
 
 root = Path(__file__).resolve().parent.parent
-harness_name = "transitions" if "--transitions" in sys.argv else "smoke"
-pass_marker = "TRANSITIONS PASS:" if harness_name == "transitions" else "SMOKE PASS:"
+harness_name = next((name for name in ("audio", "transitions") if f"--{name}" in sys.argv), "smoke")
+pass_marker = f"{harness_name.upper()} PASS:"
 with tempfile.TemporaryDirectory(prefix="quickshell-check-") as directory:
     target = Path(directory) / "config"
     shutil.copytree(root, target, ignore=shutil.ignore_patterns(".git", "__pycache__", "*.tmp"))

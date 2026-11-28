@@ -1,5 +1,7 @@
 ActionTile components/ActionTile.qml
 AppsMenu menus/AppsMenu.qml
+AudioMenu menus/AudioMenu.qml
+singleton AudioMenuService services/AudioMenuService.qml
 HyprbeamMenu menus/HyprbeamMenu.qml
 singleton HyprbeamService services/HyprbeamService.qml
 singleton AudioService services/AudioService.qml

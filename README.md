@@ -209,11 +209,18 @@ quickshell ipc call launcher windows
 quickshell ipc call launcher capture
 quickshell ipc call launcher power
 quickshell ipc call launcher display
+quickshell ipc call launcher audio       # Copilot+A (Alt+Shift+A)
 quickshell ipc call launcher wifi
 quickshell ipc call launcher bluetooth
 quickshell ipc call launcher session
 quickshell ipc call launcher camera
 ```
+
+The **Audio** menu sets the default output and microphone and lets you mute or
+reroute individual playback and recording streams. Start playing or recording in
+an app first so its stream is listed. Routes are remembered for returning streams
+by WirePlumber (`node.stream.restore-target`, enabled by default). The menu uses
+`pactl` with `pipewire-pulse`.
 
 hyprbeam launcher (Mod+Space; menu mode `hyprbeam`), a frontend for the
 hyprbeam daemon (`~/Projects/hyprbeam`) (apps, calculator, niri windows, plugins):

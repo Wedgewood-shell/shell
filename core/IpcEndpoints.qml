@@ -101,6 +101,9 @@ Scope {
         function power(): void {
             OverlayController.openLauncher("power")
         }
+        function audio(): void {
+            OverlayController.openLauncher("audio")
+        }
         function wifi(): void {
             OverlayController.openLauncher("wifi")
         }

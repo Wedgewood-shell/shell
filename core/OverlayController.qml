@@ -67,6 +67,7 @@ Singleton {
     }
     function syncMenus() {
         WifiService.wifiOpen = launcherOpen && launcherMode === "wifi"
+        AudioMenuService.open = launcherOpen && launcherMode === "audio"
         if (!launcherOpen)
             DisplayService.newDisplayName = ""
     }
